@@ -2,14 +2,12 @@ import myCalc from './calculator.js';
 
 const main = function () {
 
-    document.addEventListener('keypress', (e) => {
+    document.addEventListener('keydown', (e) => {
         myCalc.captureKeyboardInput(e);
     });
 
     document.addEventListener('click',(e) => {
-        if (e.target.classList.contains("digit-button")) {
-            myCalc.captureMouseClickInput(e);
-        };
+        myCalc.captureMouseClickInput(e);
     });
 
 }
