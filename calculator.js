@@ -30,6 +30,11 @@ export default {
     },
 
     captureKeyboardInput(e) {
+        // if a user interacts with the calculator via the keyboard
+        // this method handles individual key down actions.
+
+        // not all calculator methods are accessible via the 
+        // keyboard.
         
         if (this.re_testInput.test(e.key)) {
 
@@ -49,9 +54,36 @@ export default {
             this.removeLastUserInput();
         }
 
+        if (e.key === "Delete") {
+            this.clearAll();
+        }
+
+        if (e.key === "+") {
+            console.log(`keydown: ${e.key}`);
+        }
+
+        if (e.key === "-") {
+            console.log(`keydown: ${e.key}`);
+        }
+
+        if (e.key === "*") {
+            console.log(`keydown: ${e.key}`);
+        }
+
+        if (e.key === "/") {
+            console.log(`keydown: ${e.key}`);
+        }
+
+        if (e.key === "=") {
+            console.log(`keydown: ${e.key}`);
+        }
+
     },
 
     captureMouseClickInput(e) {
+        // if a user interacts with the calculator buttons
+        // via mouse clicks, this method handles individual
+        // button actions.
 
         if (e.target.classList.contains("digit-button")) {
             if (this.re_testInput.test(e.target.innerText)) {
@@ -69,18 +101,48 @@ export default {
             }
         };
 
+        console.log(`click: ${e.target.innerText}`);
+
         if (e.target.innerText === "<") {
             this.removeLastUserInput();
-        }
+        };
+
+        if (e.target.innerText === "AC") {
+            console.log(`click: ${e.target.innerText}`);
+            this.clearAll();
+        };
+
+        if (e.target.innerText === "+") {
+            console.log(`click: ${e.target.innerText}`);
+        };
+
+        if (e.target.innerHTML === "\u2212") { // minus
+            console.log(`click: ${e.target.innerHTML}`);
+        };
+
+        if (e.target.innerText === "\u00D7") { // times
+            console.log(`click: ${e.target.innerText}`);
+        };
+
+        if (e.target.innerText === "\u00F7") { // divide
+            console.log(`click: ${e.target.innerText}`);
+        };
+
+        if (e.target.innerText === "\u003D") { // equal
+            console.log(`click: ${e.target.innerText}`);
+        };
+
     },
 
     updateUserInputValue (a) {
-        // accept digits and decimals.
+        // append the user input value with the next 
+        // character / digit entered by the user.
         
         this.userInput += a;
     },
 
     removeLastUserInput() {
+        // delete the last user input character by character.
 
         if (!(this.zero.toPrecision(this.displayPrecision) == this.userInput)) {
             this.userInput = this.userInput.slice(0,-1);
@@ -92,8 +154,19 @@ export default {
 
     },
 
+    clearAll () {
+        // clear buffers and reset display to 0.00.
+
+        this.calculatedValue = 0;
+        this.displayCalculatedValue = 0;
+        this.userInput = this.zero.toPrecision(this.displayPrecision);
+        this.inputBuffer.length = 0;
+        this.updateDisplay();
+    },
 
     updateDisplay() {
+        // update the calculator's primary display.
+
         this.primaryDisplay.textContent = this.userInput;
     },
 
@@ -102,8 +175,6 @@ export default {
     },
 
     displayCalculatedValue () {
-        // I want to use this after a calculation to 
-        // show a rounded result.
         return calculatedValue.toPrecision(this.displayPrecision);
     },
 

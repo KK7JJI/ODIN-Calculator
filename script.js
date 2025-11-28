@@ -7,7 +7,9 @@ const main = function () {
     });
 
     document.addEventListener('click',(e) => {
-        myCalc.captureMouseClickInput(e);
+        if (e.target.classList.contains("calculator-button")) {
+            myCalc.captureMouseClickInput(e);
+        }
     });
 
 }
