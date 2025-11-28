@@ -27,11 +27,24 @@ export default {
         return a/b;
     },
 
-    captureUserInput(a) {
-        if (this.re_testInput.test(a)) {
-            if ( !(a === "." && this.re_checkForDecimal.test(this.userInput)) ) {
-                this.updateUserInputValue(a);
-                this.updateDisplay();
+    captureKeyboardInput(e) {
+        if (this.re_testInput.test(e.key)) {
+            if ( !(e.key === "." && this.re_checkForDecimal.test(this.userInput)) ) {
+                if (this.userInput.length < 25) {
+                    this.updateUserInputValue(e.key);
+                    this.updateDisplay();
+                }
+            }
+        };
+    },
+
+    captureMouseClickInput(e) {
+        if (this.re_testInput.test(e.target.innerText)) {
+            if ( !(e.target.innerText === "." && this.re_checkForDecimal.test(this.userInput)) ) {
+                if (this.userInput.length < 25) {
+                    this.updateUserInputValue(e.target.innerText);
+                    this.updateDisplay();
+                }
             }
         };
     },
