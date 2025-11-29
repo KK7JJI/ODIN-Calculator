@@ -94,7 +94,9 @@ export default {
     getOperatorButtonPresses(a) { // a is +,-,*,/,=
 
         console.log("operator-button")
-        this.inputBuffer.push(this.userInput);
+        if (!(this.inputBuffer[this.inputBuffer.length - 1] === "\u0029")) {
+            this.inputBuffer.push(this.userInput);
+        }
         this.inputBuffer.push(a); 
         
         this.updateSecondaryDisplayRight();
@@ -146,7 +148,7 @@ export default {
                 break;
             
             case "Inv": // inverse
-                // to do - error message in left hand display.
+                // to do - divide by zero error message in left hand display.
 
                 if (parseFloat(this.userInput) == 0) {
                     console.log("divide by zero error.");
@@ -155,6 +157,27 @@ export default {
                     this.updateDisplay();
                 }
                 break;
+
+            case "\u0025": // percent
+                this.userInput = (parseFloat(this.userInput) / 100.0).toString();
+                this.updateDisplay();
+                break;
+
+            case "\u0028": // left parenthesis
+                this.inputBuffer.push(a);
+                this.updateSecondaryDisplayRight();
+                this.userInput = this.zero.toPrecision(this.displayPrecision);
+                this.updateDisplay();
+                break;
+            
+            case "\u0029": // right parenthesis
+                this.inputBuffer.push(this.userInput);
+                this.inputBuffer.push(a);
+                this.updateSecondaryDisplayRight();
+                this.userInput = this.zero.toPrecision(this.displayPrecision);
+                this.updateDisplay();
+                break;
+
         }
     },
 
