@@ -5,6 +5,7 @@ export default {
 
     primaryDisplay: document.querySelector(".primary-display"),
     secondaryDisplayRight: document.querySelector(".upperdisplay-rightside"),
+    messageDisplayLeft: document.querySelector(".upperdisplay-leftside"),
 
     displayPrecision: 3,
     calculatedValue: 0.0,
@@ -12,12 +13,16 @@ export default {
 
     userInput: "0.00",
     secondaryDisplayRight_value: "",
+    messageDisplayLeft_value: "",
 
     re_testInput: /^\d|^\./,
     re_checkForDecimal: /\./,
 
     operatorKeys: ["+","-","*","/","="],
     operatorUnicode: ["+","\u2212","\u00D7","\u00F7","="],
+
+    immediateKeys: ["(",")"],
+    immediateUnicode: ["\u0028", "\u0029"],
 
     
     add (a,b) {
@@ -45,7 +50,7 @@ export default {
         
         if (this.re_testInput.test(e.key)) {
             this.getDigitButtonPresses(e.key);
-        };
+        }
 
         if (e.key === "Backspace") {
             this.removeLastUserInput();
@@ -61,6 +66,12 @@ export default {
             );
         }
 
+        if (this.immediateKeys.includes(e.key)) {
+            this.evaluateImmediateCalculatorFunctions(
+                this.immediateUnicode[this.immediateKeys.findIndex((item) => item == e.key)]
+            );
+        }
+        
     },
 
     captureMouseClickInput(e) {
@@ -70,16 +81,16 @@ export default {
 
         if (e.target.classList.contains("digit-button")) {
             this.getDigitButtonPresses(e.target.innerText);
-        };
+        }
 
         if (e.target.innerText === "<") {
             this.removeLastUserInput();
-        };
+        }
 
         if (e.target.innerText === "AC") {
             console.log(`click: ${e.target.innerText}`);
             this.clearAll();
-        };
+        }
 
         if (e.target.classList.contains("immediate-button")) {
             this.evaluateImmediateCalculatorFunctions(e.target.innerText);
@@ -87,14 +98,15 @@ export default {
 
         if (e.target.classList.contains("operator-button")) {
             this.getOperatorButtonPresses(e.target.innerText);
-        };
+        }
 
     },
 
     getOperatorButtonPresses(a) { // a is +,-,*,/,=
 
         console.log("operator-button")
-        if (!(this.inputBuffer[this.inputBuffer.length - 1] === "\u0029")) {
+        if (!(this.inputBuffer[this.inputBuffer.length - 1] === "\u0029")) { 
+            // there is no number between the closing right parenthesis and an operator.
             this.inputBuffer.push(this.userInput);
         }
         this.inputBuffer.push(a); 
@@ -111,7 +123,7 @@ export default {
 
         if (this.re_testInput.test(a)) {
 
-            if (this.zero.toPrecision(this.displayPrecision) == this.userInput) {
+            if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
                 this.userInput = "";
             }
 
@@ -177,7 +189,6 @@ export default {
                 this.userInput = this.zero.toPrecision(this.displayPrecision);
                 this.updateDisplay();
                 break;
-
         }
     },
 
@@ -213,6 +224,9 @@ export default {
         this.inputBuffer.length = 0;
         this.updateDisplay();
         this.updateSecondaryDisplayRight();
+        this.messageDisplayLeft_value = "";
+        this.updateMsgDisplayLeft();
+
     },
 
     updateDisplay() {
@@ -230,6 +244,16 @@ export default {
             this.secondaryDisplayRight_value = this.inputBuffer.join(" ");
         }
         this.secondaryDisplayRight.textContent = this.secondaryDisplayRight_value;
+    },
+
+    updateMsgDisplayLeft() {
+        // update the calculator's upper left display.
+
+        if (this.messageDisplayLeft_value === "") {
+            this.messageDisplayLeft.textContent = "READY";
+        } else {
+            this.messageDisplayLeft.textContent = this.messageDisplayLeft_value;
+        }
     },
 
     updateDisplayValue (a) {
