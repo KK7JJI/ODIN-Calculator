@@ -11,7 +11,6 @@ const main = function () {
             myCalc.captureMouseClickInput(e);
         }
     });
-
 }
 
 main();

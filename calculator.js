@@ -2,16 +2,23 @@
 export default {
 
     inputBuffer: [],
+
     primaryDisplay: document.querySelector(".primary-display"),
+    secondaryDisplayRight: document.querySelector(".upperdisplay-rightside"),
 
     displayPrecision: 3,
     calculatedValue: 0.0,
     zero: 0.0,
 
     userInput: "0.00",
+    secondaryDisplayRight_value: "",
 
     re_testInput: /^\d|^\./,
     re_checkForDecimal: /\./,
+
+    operatorKeys: ["+","-","*","/","="],
+    operatorUnicode: ["+","\u2212","\u00D7","\u00F7","="],
+
     
     add (a,b) {
         return a+b;
@@ -37,17 +44,7 @@ export default {
         // keyboard.
         
         if (this.re_testInput.test(e.key)) {
-
-            if (this.zero.toPrecision(this.displayPrecision) == this.userInput) {
-                this.userInput = "";
-            }
-
-            if ( !(e.key === "." && this.re_checkForDecimal.test(this.userInput)) ) {
-                if (this.userInput.length < 25) {
-                    this.updateUserInputValue(e.key);
-                    this.updateDisplay();
-                }
-            }
+            this.getDigitButtonPresses(e.key);
         };
 
         if (e.key === "Backspace") {
@@ -58,24 +55,10 @@ export default {
             this.clearAll();
         }
 
-        if (e.key === "+") {
-            console.log(`keydown: ${e.key}`);
-        }
-
-        if (e.key === "-") {
-            console.log(`keydown: ${e.key}`);
-        }
-
-        if (e.key === "*") {
-            console.log(`keydown: ${e.key}`);
-        }
-
-        if (e.key === "/") {
-            console.log(`keydown: ${e.key}`);
-        }
-
-        if (e.key === "=") {
-            console.log(`keydown: ${e.key}`);
+        if (this.operatorKeys.includes(e.key)) {
+            this.getOperatorButtonPresses(
+                this.operatorUnicode[this.operatorKeys.findIndex((item) => item == e.key)]
+            );
         }
 
     },
@@ -86,22 +69,8 @@ export default {
         // button actions.
 
         if (e.target.classList.contains("digit-button")) {
-            if (this.re_testInput.test(e.target.innerText)) {
-
-                if (this.zero.toPrecision(this.displayPrecision) == this.userInput) {
-                    this.userInput = "";
-                }
-
-                if ( !(e.target.innerText === "." && this.re_checkForDecimal.test(this.userInput)) ) {
-                    if (this.userInput.length < 25) {
-                        this.updateUserInputValue(e.target.innerText);
-                        this.updateDisplay();
-                    }
-                }
-            }
+            this.getDigitButtonPresses(e.target.innerText);
         };
-
-        console.log(`click: ${e.target.innerText}`);
 
         if (e.target.innerText === "<") {
             this.removeLastUserInput();
@@ -112,26 +81,81 @@ export default {
             this.clearAll();
         };
 
-        if (e.target.innerText === "+") {
-            console.log(`click: ${e.target.innerText}`);
+        if (e.target.classList.contains("immediate-button")) {
+            this.evaluateImmediateCalculatorFunctions(e.target.innerText);
+        }
+
+        if (e.target.classList.contains("operator-button")) {
+            this.getOperatorButtonPresses(e.target.innerText);
         };
 
-        if (e.target.innerHTML === "\u2212") { // minus
-            console.log(`click: ${e.target.innerHTML}`);
-        };
+    },
 
-        if (e.target.innerText === "\u00D7") { // times
-            console.log(`click: ${e.target.innerText}`);
-        };
+    getOperatorButtonPresses(a) { // a is +,-,*,/,=
 
-        if (e.target.innerText === "\u00F7") { // divide
-            console.log(`click: ${e.target.innerText}`);
-        };
+        console.log("operator-button")
+        this.inputBuffer.push(this.userInput);
+        this.inputBuffer.push(a); 
+        
+        this.updateSecondaryDisplayRight();
+        this.userInput = this.zero.toPrecision(this.displayPrecision);
+        this.updateDisplay();
 
-        if (e.target.innerText === "\u003D") { // equal
-            console.log(`click: ${e.target.innerText}`);
-        };
+        //todo: if the operator is "=" then we need to evaluate the result.
 
+    },
+
+    getDigitButtonPresses(a) {
+
+        if (this.re_testInput.test(a)) {
+
+            if (this.zero.toPrecision(this.displayPrecision) == this.userInput) {
+                this.userInput = "";
+            }
+
+            if ( !(a === "." && this.re_checkForDecimal.test(this.userInput)) ) {
+                if (this.userInput.length < 25) {
+                    this.updateUserInputValue(a);
+                    this.updateDisplay();
+                }
+            }
+        }
+
+    },
+
+    evaluateImmediateCalculatorFunctions(a) {
+
+        switch (a) {
+            case "\u03C0": // pi
+                this.userInput = (Math.PI).toString();
+                this.updateDisplay();
+                break;
+            
+            case "\u00B1": // plus / minus
+
+                if (parseFloat(this.userInput) == 0) {
+                    console.log("negative zero");
+                } else {
+                    if (this.userInput.slice(0,1) === "-") {
+                        this.userInput = this.userInput.slice(1);
+                    } else {
+                        this.userInput = "-" + this.userInput;
+                    }
+                    this.updateDisplay()
+                }
+                break;
+            
+            case "Inv": // inverse
+                // to do - error message in left hand display.
+
+                if (parseFloat(this.userInput) == 0) {
+                    console.log("divide by zero error.");
+                } else {
+                    this.userInput = (1.0 / parseFloat(this.userInput)).toString();
+                    this.updateDisplay();
+                }
+                break;
+        }
     },
 
     updateUserInputValue (a) {
@@ -149,6 +173,9 @@ export default {
             if (this.userInput.length == 0) {
                 this.userInput = this.zero.toPrecision(this.displayPrecision);
             }
+            if (this.userInput === "-") {
+                this.userInput = this.zero.toPrecision(this.displayPrecision);
+            }
             this.updateDisplay();
         }
 
@@ -162,12 +189,24 @@ export default {
         this.userInput = this.zero.toPrecision(this.displayPrecision);
         this.inputBuffer.length = 0;
         this.updateDisplay();
+        this.updateSecondaryDisplayRight();
     },
 
     updateDisplay() {
         // update the calculator's primary display.
 
         this.primaryDisplay.textContent = this.userInput;
+    },
+
+    updateSecondaryDisplayRight() {
+        // update the calculator's upper right display.
+
+        if (this.inputBuffer.length === 0) {
+            this.secondaryDisplayRight_value = "(empty)"    
+        } else {
+            this.secondaryDisplayRight_value = this.inputBuffer.join(" ");
+        }
+        this.secondaryDisplayRight.textContent = this.secondaryDisplayRight_value;
     },
 
     updateDisplayValue (a) {
@@ -177,6 +216,5 @@ export default {
     displayCalculatedValue () {
         return calculatedValue.toPrecision(this.displayPrecision);
     },
-
 
 };
