@@ -17,9 +17,10 @@ export default {
 
     re_testInput: /^\d|^\./,
     re_checkForDecimal: /\./,
+    re_checkIfNumber: /^[+-]?\d+(\.\d+)?$/,
 
-    operatorKeys: ["+","-","*","/","="],
-    operatorUnicode: ["+","\u2212","\u00D7","\u00F7","="],
+    operatorKeys: ["+","-","*","/"],
+    operatorUnicode: ["+","\u2212","\u00D7","\u00F7"],
 
     immediateKeys: ["(",")"],
     immediateUnicode: ["\u0028", "\u0029"],
@@ -48,30 +49,47 @@ export default {
         // not all calculator methods are accessible via the 
         // keyboard.
         
-        if (this.re_testInput.test(e.key)) {
-            this.getDigitButtonPresses(e.key);
+        console.log(e.key);
+
+        let keydown = e.key;
+        if (e.keyCode === 57 && e.shiftKey) { // left parentheses shift + 9
+            keydown = "(";
+        }
+        if (e.keyCode === 48 && e.shiftKey) { // right parentheses shift + 0
+            keydown = ")";
         }
 
-        if (e.key === "Backspace") {
+
+        if (this.re_testInput.test(keydown)) {
+            if (this.continuePreviousCalculation()) {
+                this.clearAll();
+            }
+            this.getDigitButtonPresses(keydown);
+        }
+
+        if (keydown === "Backspace") {
             this.removeLastUserInput();
         }
 
-        if (e.key === "Delete") {
+        if (keydown === "Delete") {
             this.clearAll();
         }
 
-        if (this.operatorKeys.includes(e.key)) {
+        if (this.operatorKeys.includes(keydown)) {
             this.getOperatorButtonPresses(
-                this.operatorUnicode[this.operatorKeys.findIndex((item) => item == e.key)]
+                this.operatorUnicode[this.operatorKeys.findIndex((item) => item == keydown)]
             );
         }
 
-        if (this.immediateKeys.includes(e.key)) {
+        if (this.immediateKeys.includes(keydown)) {
             this.evaluateImmediateCalculatorFunctions(
-                this.immediateUnicode[this.immediateKeys.findIndex((item) => item == e.key)]
+                this.immediateUnicode[this.immediateKeys.findIndex((item) => item == keydown)]
             );
         }
-        
+                
+        if (keydown === "=") {
+            this.evaluateResult();
+        }
     },
 
     captureMouseClickInput(e) {
@@ -80,6 +98,9 @@ export default {
         // button actions.
 
         if (e.target.classList.contains("digit-button")) {
+            if (this.continuePreviousCalculation()) {
+                this.clearAll();
+            }
             this.getDigitButtonPresses(e.target.innerText);
         }
 
@@ -100,22 +121,44 @@ export default {
             this.getOperatorButtonPresses(e.target.innerText);
         }
 
+        if (e.target.innerText === "\u003D") {
+            this.evaluateResult();
+        }
     },
 
-    getOperatorButtonPresses(a) { // a is +,-,*,/,=
+    continuePreviousCalculation() {
+        
+        if ( (this.inputBuffer.at(-1) === "=") || (this.inputBuffer.at(-1) === "\u003D")) {
+            return true;
+        } else {
+            return false;
+        }
+    },
+
+    getOperatorButtonPresses(a) { // a is +,-,*,/
 
         console.log("operator-button")
-        if (!(this.inputBuffer[this.inputBuffer.length - 1] === "\u0029")) { 
-            // there is no number between the closing right parenthesis and an operator.
-            this.inputBuffer.push(this.userInput);
-        }
-        this.inputBuffer.push(a); 
-        
-        this.updateSecondaryDisplayRight();
-        this.userInput = this.zero.toPrecision(this.displayPrecision);
-        this.updateDisplay();
 
-        //todo: if the operator is "=" then we need to evaluate the result.
+        if (this.continuePreviousCalculation()) {
+            let temp_value = this.calculatedValue;
+            this.clearAll();
+            this.userInput = temp_value
+            this.updateDisplay();
+        }
+
+        if (this.inputBuffer.at(-1) === "\u0029") { // right parentheses ")"
+            this.inputBuffer.push(a);
+            this.updateSecondaryDisplayRight();
+        } else if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
+            this.messageDisplayLeft_value = "Missing input.";
+            this.updateMsgDisplayLeft();
+        } else {
+            this.inputBuffer.push(this.userInput);
+            this.inputBuffer.push(a);         
+            this.updateSecondaryDisplayRight();
+            this.userInput = "";
+            this.updateDisplay();
+        }
 
     },
 
@@ -134,15 +177,53 @@ export default {
                 }
             }
         }
+        this.messageDisplayLeft_value = ""
+        this.updateMsgDisplayLeft();
 
     },
 
     evaluateImmediateCalculatorFunctions(a) {
 
+        if (this.continuePreviousCalculation()) {
+
+            let temp_value = this.calculatedValue;
+            switch (a) {
+                case "Inv":
+                case "\u0025": // percent
+                case "\u00B1": // plus/minus
+                    this.clearAll();
+                    this.userInput = String(temp_value);
+                    this.updateDisplay();
+                    this.updateMsgDisplayLeft();
+                    break;
+
+                case "\u0028": // left parentheses
+                    this.clearAll();
+                    this.inputBuffer.push(a);
+                    this.updateSecondaryDisplayRight();
+                    this.userInput = String(temp_value);
+                    this.updateDisplay();
+                    this.updateMsgDisplayLeft();
+                    a = 0;
+                    break;
+
+                case "\u0029": // right parenthesis
+                    this.messageDisplayLeft_value = "Error: Missing ')'"
+                    this.updateMsgDisplayLeft();
+                    a = 0;
+                    break;
+
+                default:
+                    this.clearAll(); 
+            }
+        }
+
         switch (a) {
             case "\u03C0": // pi
-                this.userInput = (Math.PI).toString();
+
+                this.updateUserInputValue(a);
                 this.updateDisplay();
+                this.updateMsgDisplayLeft();
                 break;
             
             case "\u00B1": // plus / minus
@@ -156,6 +237,7 @@ export default {
                         this.userInput = "-" + this.userInput;
                     }
                     this.updateDisplay()
+                    this.updateMsgDisplayLeft();
                 }
                 break;
             
@@ -163,40 +245,76 @@ export default {
                 // to do - divide by zero error message in left hand display.
 
                 if (parseFloat(this.userInput) == 0) {
-                    console.log("divide by zero error.");
+                    this.messageDisplayLeft_value = "Error: Divide by zero.";
+                    this.updateMsgDisplayLeft();
+
                 } else {
                     this.userInput = (1.0 / parseFloat(this.userInput)).toString();
                     this.updateDisplay();
+                    this.updateMsgDisplayLeft();
                 }
                 break;
 
             case "\u0025": // percent
+
                 this.userInput = (parseFloat(this.userInput) / 100.0).toString();
                 this.updateDisplay();
+                this.updateMsgDisplayLeft();
                 break;
 
             case "\u0028": // left parenthesis
-                this.inputBuffer.push(a);
-                this.updateSecondaryDisplayRight();
-                this.userInput = this.zero.toPrecision(this.displayPrecision);
-                this.updateDisplay();
+
+                if ( this.re_checkIfNumber.test(String(this.inputBuffer.at(-1))) ) {
+                    this.messageDisplayLeft_value = "Missing operand.";
+                    this.updateMsgDisplayLeft();
+
+                } else if (this.inputBuffer.at(-1) === "\u0029") {
+                    this.messageDisplayLeft_value = "Missing operand.";
+                    this.updateMsgDisplayLeft();
+
+                } else {
+                    this.inputBuffer.push(a);
+                    this.updateSecondaryDisplayRight();
+                    this.userInput = "";
+                    this.updateDisplay();
+                    this.updateMsgDisplayLeft();
+                }
                 break;
             
             case "\u0029": // right parenthesis
-                this.inputBuffer.push(this.userInput);
-                this.inputBuffer.push(a);
-                this.updateSecondaryDisplayRight();
-                this.userInput = this.zero.toPrecision(this.displayPrecision);
-                this.updateDisplay();
+                if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
+                    this.messageDisplayLeft_value = "Missing operand.";
+                    this.updateMsgDisplayLeft();
+
+                } else {
+                    this.inputBuffer.push(this.userInput);
+                    this.inputBuffer.push(a);
+                    this.updateSecondaryDisplayRight();
+                    this.userInput = "";
+                    this.updateDisplay();
+                    this.updateMsgDisplayLeft();
+
+                }
                 break;
         }
     },
 
+
     updateUserInputValue (a) {
         // append the user input value with the next 
         // character / digit entered by the user.
-        
+
+        if (this.zero.toPrecision(this.displayPrecision) == this.userInput) {
+            this.userInput = "";
+        }
         this.userInput += a;
+
+        // the calculator will not assume multiplication on an entry of 2pi.
+        if (this.userInput.length > 1 && a === "\u03C0") {
+            this.userInput = "";
+            this.messageDisplayLeft_value = "ERROR: Missing Operator";
+        }
+
     },
 
     removeLastUserInput() {
@@ -205,22 +323,21 @@ export default {
         if (!(this.zero.toPrecision(this.displayPrecision) == this.userInput)) {
             this.userInput = this.userInput.slice(0,-1);
             if (this.userInput.length == 0) {
-                this.userInput = this.zero.toPrecision(this.displayPrecision);
+                this.userInput = "";
             }
             if (this.userInput === "-") {
-                this.userInput = this.zero.toPrecision(this.displayPrecision);
+                this.userInput = "";
             }
+
             this.updateDisplay();
         }
-
     },
 
     clearAll () {
         // clear buffers and reset display to 0.00.
 
         this.calculatedValue = 0;
-        this.displayCalculatedValue = 0;
-        this.userInput = this.zero.toPrecision(this.displayPrecision);
+        this.userInput = "";
         this.inputBuffer.length = 0;
         this.updateDisplay();
         this.updateSecondaryDisplayRight();
@@ -231,6 +348,9 @@ export default {
 
     updateDisplay() {
         // update the calculator's primary display.
+        if (this.userInput == "") {
+            this.userInput = this.zero.toPrecision(this.displayPrecision);
+        }
 
         this.primaryDisplay.textContent = this.userInput;
     },
@@ -238,10 +358,18 @@ export default {
     updateSecondaryDisplayRight() {
         // update the calculator's upper right display.
 
-        if (this.inputBuffer.length === 0) {
+        let temp_buffer = this.inputBuffer.map((x) => {
+            if (this.re_checkIfNumber.test(x)) {
+                return String((parseFloat(x)).toPrecision(this.displayPrecision));
+            } else {
+                return x;
+            }
+        })
+
+        if (temp_buffer.length === 0) {
             this.secondaryDisplayRight_value = "(empty)"    
         } else {
-            this.secondaryDisplayRight_value = this.inputBuffer.join(" ");
+            this.secondaryDisplayRight_value = temp_buffer.join(" ");
         }
         this.secondaryDisplayRight.textContent = this.secondaryDisplayRight_value;
     },
@@ -254,6 +382,56 @@ export default {
         } else {
             this.messageDisplayLeft.textContent = this.messageDisplayLeft_value;
         }
+        this.messageDisplayLeft_value = "";
+    },
+
+    evaluateResult() {
+
+        if (this.inputBuffer.at(-1) === "\u0029") { // right parenthesis
+            this.inputBuffer.push("=");
+            this.updateSecondaryDisplayRight();
+        } else {
+            let inputValueReady = true;
+            if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
+                inputValueReady = false;
+            }
+
+            if (!(inputValueReady) && this.operatorKeys.includes(this.inputBuffer.at(-1))) {
+                this.messageDisplayLeft_value = "Missing operand.";
+                this.updateMsgDisplayLeft();
+            } else if (!(inputValueReady) && this.operatorUnicode.includes(this.inputBuffer.at(-1))) {
+                this.messageDisplayLeft_value = "Missing operand.";
+                this.updateMsgDisplayLeft();
+            } else if (!this.checkForBalancedParentheses()) {
+                this.messageDisplayLeft_value = "Unbalanced parentheses."
+                this.updateMsgDisplayLeft();
+            } else {
+                this.inputBuffer.push(this.userInput);
+                this.inputBuffer.push("=");         
+                this.updateSecondaryDisplayRight();
+                this.userInput = "";
+                this.updateDisplay();
+            }
+        }
+
+        // to do: add evaluation logic.
+
+        if (this.inputBuffer.at(-1) === "=") {
+            this.calculatedValue = Math.PI; // I should be a number, not a string.
+            this.displayCalculatedValue();
+            this.messageDisplayLeft_value = "Answer";
+            this.updateMsgDisplayLeft();
+        }
+
+    },
+
+    checkForBalancedParentheses() {
+
+        const leftparentheses = this.inputBuffer.filter((currentItem) => currentItem === "(");
+        const rightparentheses = this.inputBuffer.filter((currentItem) => currentItem === ")")
+        
+        return leftparentheses.length === rightparentheses.length
+
     },
 
     updateDisplayValue (a) {
@@ -261,7 +439,7 @@ export default {
     },
 
     displayCalculatedValue () {
-        return calculatedValue.toPrecision(this.displayPrecision);
+         this.primaryDisplay.textContent = this.calculatedValue;
     },
 
 };

@@ -1,0 +1,33 @@
+Messages:
+
+Left side message display:
+ - divide by zero when entered explicitly by the user
+ - missing parenthesis
+ - READY on startup and when pressing AC
+ - NaN
+ - Square root of a negative number (complex numbers not implemented)
+
+
+
+Pressing "=" 
+ - QC checks need to be completed before evaluating the calculation.
+    - balanced parentheses.  Count left and right parenthesis and make sure they balance.
+    - missing operator - shouldn't happen but, an operator should follow every number or 
+        right parenthesis in the expression.
+
+ - Evaluation begings between the innermost () working left to right and then outward.
+    sqrt(2+2) goes to sqrt(4) which then evaluates to 2.
+
+ - Evaluation can be based on a single digit, i.e. "3.14 =" evaluates to 3.14.
+ 
+
+Updates needed: 
+ - modify the calculator so that Pi appears as the symbol rather than the expanded deciman number.
+ - When entering a number following an evaluation we need to:
+     - if the keystroke is a function or operator:
+     - flush the inputBuffer
+     - save the current display to the input buffer
+     - clear the display
+     - update the right side upper display
+     
+     - NOTE: if we start typing digits then execute an all clear before accepting input.
