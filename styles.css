@@ -84,7 +84,10 @@
 }
 
 
-.function-button {
+.function-button,
+.backspace-button,
+.clearall-button,
+.immediate-button {
     background-color: rgb(239,237,255);
 }
 
@@ -98,7 +101,7 @@
     font-size: 25px;
 }
 
-.back-button {
+.backspace-button {
     font-weight:bolder;
 }
 

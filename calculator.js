@@ -1,3 +1,5 @@
+import { shuntingYardParser } from "./parser.js";
+
 // Calculator Object
 export default {
 
@@ -18,6 +20,7 @@ export default {
     re_testInput: /^\d|^\./,
     re_checkForDecimal: /\./,
     re_checkIfNumber: /^[+-]?\d+(\.\d+)?$/,
+    re_parenthesisGroupFind: /\(.+\)/,
 
     operatorKeys: ["+","-","*","/"],
     operatorUnicode: ["+","\u2212","\u00D7","\u00F7"],
@@ -25,21 +28,10 @@ export default {
     immediateKeys: ["(",")"],
     immediateUnicode: ["\u0028", "\u0029"],
 
-    
-    add (a,b) {
-        return a+b;
-    },
-
-    subtract (a,b) {
-        return a-b;
-    },
-
-    multiply (a,b) {
-        return a*b;
-    },
-
-    divide (a,b) {
-        return a/b;
+    //===========
+    testParser() {
+        console.log(shuntingYardParser.parseExpression("(3+4*(2-1))/2".split("")));
+        console.log(shuntingYardParser.evaluatePostFix());
     },
 
     captureKeyboardInput(e) {
@@ -59,6 +51,10 @@ export default {
             keydown = ")";
         }
 
+        // ============
+        if (keydown === "q") {
+            this.testParser();
+        }
 
         if (this.re_testInput.test(keydown)) {
             if (this.continuePreviousCalculation()) {
@@ -104,11 +100,11 @@ export default {
             this.getDigitButtonPresses(e.target.innerText);
         }
 
-        if (e.target.innerText === "<") {
+        if (e.target.classList.contains("backspace-button")) {
             this.removeLastUserInput();
         }
 
-        if (e.target.innerText === "AC") {
+        if (e.target.classList.contains("clearall-button")) {
             console.log(`click: ${e.target.innerText}`);
             this.clearAll();
         }
@@ -121,14 +117,14 @@ export default {
             this.getOperatorButtonPresses(e.target.innerText);
         }
 
-        if (e.target.innerText === "\u003D") {
+        if (e.target.classList.contains("evaluate-button")) {
             this.evaluateResult();
         }
     },
 
     continuePreviousCalculation() {
         
-        if ( (this.inputBuffer.at(-1) === "=") || (this.inputBuffer.at(-1) === "\u003D")) {
+        if (this.inputBuffer.at(-1) === "=") {
             return true;
         } else {
             return false;
@@ -197,7 +193,7 @@ export default {
                     this.updateMsgDisplayLeft();
                     break;
 
-                case "\u0028": // left parentheses
+                case "(": // left parentheses
                     this.clearAll();
                     this.inputBuffer.push(a);
                     this.updateSecondaryDisplayRight();
@@ -207,7 +203,7 @@ export default {
                     a = 0;
                     break;
 
-                case "\u0029": // right parenthesis
+                case ")": // right parenthesis
                     this.messageDisplayLeft_value = "Error: Missing ')'"
                     this.updateMsgDisplayLeft();
                     a = 0;
@@ -262,7 +258,7 @@ export default {
                 this.updateMsgDisplayLeft();
                 break;
 
-            case "\u0028": // left parenthesis
+            case "(": // left parenthesis
 
                 if ( this.re_checkIfNumber.test(String(this.inputBuffer.at(-1))) ) {
                     this.messageDisplayLeft_value = "Missing operand.";
@@ -281,7 +277,7 @@ export default {
                 }
                 break;
             
-            case "\u0029": // right parenthesis
+            case ")": // right parenthesis
                 if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
                     this.messageDisplayLeft_value = "Missing operand.";
                     this.updateMsgDisplayLeft();
