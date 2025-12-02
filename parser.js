@@ -8,15 +8,20 @@ export const shuntingYardParser = {
         '-': 1, 
         '*': 2, 
         '/': 2, 
-        '^': 3},
+        '^': 3,
+        'sin': 0,
+    },
 
     associativity: {
         '+': 'L', 
         '-': 'L', 
         '*': 'L', 
         '/': 'L', 
-        '^': 'R'},
+        '^': 'R',
+        'sin': "L",
+    },
 
+    
     postfixQueue: [],    // postfix notation  
     operatorStack: [],  // temporary storage
 
@@ -24,9 +29,8 @@ export const shuntingYardParser = {
     parseExpression(expr) {
         this.infix_array = expr;
         this.processAllTokens();
-        return this.postfixQueue;
+        console.table(this.postfixQueue);
     },
-
 
     processAllTokens() {
         this.infix_array.forEach( (token) => {
@@ -117,10 +121,8 @@ export const shuntingYardParser = {
 
         this.postfixQueue.forEach( (token) => {
             if (this.classifyThisToken(token) === "Number") {
-                console.log(token);
                 temp_stack.push(parseFloat(token));
             } else {
-                console.log(`${a} ${token} ${b}`);
                 switch(token) {
                     case "+":
                         b = temp_stack.pop();
@@ -147,14 +149,19 @@ export const shuntingYardParser = {
                         a = temp_stack.pop();
                         temp_stack.push(a ** b);
                         break;
+                    case "sin":
+                        a = temp_stack.pop();
+                        temp_stack.push(Math.sin(a));
+
                     default:
                         // error condition.
                         break;
                 };
+                console.log(`${a} ${token} ${b}`);
             }
         });
+        console.log(`Result: ${temp_stack.at(0)}`);
         return temp_stack.at(0);
-
     }
 }
 

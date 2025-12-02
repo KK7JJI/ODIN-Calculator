@@ -31,3 +31,6 @@ Updates needed:
      - update the right side upper display
      
      - NOTE: if we start typing digits then execute an all clear before accepting input.
+
+
+Implement the shunting yard algorithm.

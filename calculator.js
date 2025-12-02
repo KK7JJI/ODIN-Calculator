@@ -4,6 +4,7 @@ import { shuntingYardParser } from "./parser.js";
 export default {
 
     inputBuffer: [],
+    tempBuffer: [],
 
     primaryDisplay: document.querySelector(".primary-display"),
     secondaryDisplayRight: document.querySelector(".upperdisplay-rightside"),
@@ -20,18 +21,19 @@ export default {
     re_testInput: /^\d|^\./,
     re_checkForDecimal: /\./,
     re_checkIfNumber: /^[+-]?\d+(\.\d+)?$/,
-    re_parenthesisGroupFind: /\(.+\)/,
 
-    operatorKeys: ["+","-","*","/"],
-    operatorUnicode: ["+","\u2212","\u00D7","\u00F7"],
+    operatorKeys: ["+","-","*","/","^"],
+    operatorUnicode: ["+","\u2212","\u00D7","\u00F7","^"],
 
     immediateKeys: ["(",")"],
     immediateUnicode: ["\u0028", "\u0029"],
 
+    functionNames: ["sin", "cos", "tan", "ln", "log", "e", "asin", "acos", "atan", "invlog"],
+
     //===========
     testParser() {
-        console.log(shuntingYardParser.parseExpression("(3+4*(2-1))/2".split("")));
-        console.log(shuntingYardParser.evaluatePostFix());
+        // console.log(shuntingYardParser.parseExpression("sin,(,1,+,1,)".split(",")));
+        // console.log(shuntingYardParser.evaluatePostFix());
     },
 
     captureKeyboardInput(e) {
@@ -42,13 +44,20 @@ export default {
         // keyboard.
         
         console.log(e.key);
+        console.log(e.keyCode);
+        console.log(e.shiftKey);
 
         let keydown = e.key;
         if (e.keyCode === 57 && e.shiftKey) { // left parentheses shift + 9
             keydown = "(";
         }
+
         if (e.keyCode === 48 && e.shiftKey) { // right parentheses shift + 0
             keydown = ")";
+        }
+
+        if (e.keyCode === 54 && e.shiftKey) { // carrot - exponent operator shift + 6
+            keydown = "^";    
         }
 
         // ============
@@ -117,9 +126,35 @@ export default {
             this.getOperatorButtonPresses(e.target.innerText);
         }
 
+        if (e.target.classList.contains("function-button")) {
+            this.getFunctionButtonPresses(e.target.innerText);
+        }
+
         if (e.target.classList.contains("evaluate-button")) {
             this.evaluateResult();
         }
+
+        if (e.target.classList.contains("degree-radian-button")) {
+            if (e.target.innerText === "rad") {
+                e.target.innerText = "deg";
+            } else {
+                e.target.innerText = "rad";
+            }
+            // need code to handle evaluating degrees vs radians
+            // for the trig functions.
+        }
+
+        if (e.target.classList.contains("alt-function-button")) {
+            if (e.target.classList.contains("alt-active")) {
+                e.target.classList.remove("alt-active");
+            } else {
+                e.target.classList.add("alt-active");
+            }
+            // need code to rename function keys with alt functions.
+            // i.e. asin, acos, atan, etc.
+        }
+
+
     },
 
     continuePreviousCalculation() {
@@ -131,9 +166,38 @@ export default {
         }
     },
 
-    getOperatorButtonPresses(a) { // a is +,-,*,/
+    getLastIndexofThisToken(a) {  // presumably either "(" or ")""
 
-        console.log("operator-button")
+        const location = this.inputBuffer.reduce( (foundIndex, currentToken, currentIndex) => {
+            if (currentToken === a) {
+                return currentIndex;
+            } else {
+                return foundIndex;
+            }
+        }, -1);
+
+        return location;
+    },
+
+    isUnterminatedExpression() {
+
+        if (this.getLastIndexofThisToken("(") > this.getLastIndexofThisToken(")") ) {
+            return true;
+        } else {
+            return false;
+        }
+    },
+
+    isTheDisplayBlank() {
+
+        if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
+            return true;
+        } else {
+            return false;
+        }
+    },
+
+    loadThisFunction(a) {
 
         if (this.continuePreviousCalculation()) {
             let temp_value = this.calculatedValue;
@@ -142,7 +206,94 @@ export default {
             this.updateDisplay();
         }
 
-        if (this.inputBuffer.at(-1) === "\u0029") { // right parentheses ")"
+        if ( this.inputBuffer.at(-1) === ")" && this.isTheDisplayBlank() ) { 
+            // e.g. 2 x (2*Pi), input = 0.00 => 2 x sin(2 * Pi) 
+
+            while (this.inputBuffer.at(-1) != "(") {
+                this.tempBuffer.push(this.inputBuffer.pop());
+            }
+            this.tempBuffer.push(this.inputBuffer.pop()); // "("
+
+            if (this.functionNames.includes(this.inputBuffer.at(-1))) {
+                this.inputBuffer.pop(); // making a correction, replace this.
+            }
+
+            this.inputBuffer.push(a);
+            while (this.tempBuffer.length > 0) {
+                this.inputBuffer.push(this.tempBuffer.pop());
+            }
+
+            this.updateSecondaryDisplayRight();
+            this.userInput = "";
+            this.updateDisplay();
+
+        } else if ( this.isUnterminatedExpression() ) { 
+            // e.g. 2 x (2*, input = 3.14 => 2 x sin(2 * 3.14)
+
+            while (this.inputBuffer.at(-1) != "(") {
+                this.tempBuffer.push(this.inputBuffer.pop());
+            }
+            this.tempBuffer.push(this.inputBuffer.pop()); // "("
+
+            this.inputBuffer.push(a);
+            while (this.tempBuffer.length > 0) {
+                this.inputBuffer.push(this.tempBuffer.pop());
+            }
+            this.inputBuffer.push(this.userInput);
+            this.inputBuffer.push(")");
+            this.updateSecondaryDisplayRight();
+            this.userInput = "";
+            this.updateDisplay();
+
+        } else {
+            // input = 3.14 => sin(3.14)
+            this.inputBuffer.push(a);
+            this.inputBuffer.push("(");
+            this.inputBuffer.push(this.userInput);
+            this.inputBuffer.push(")");
+            this.updateSecondaryDisplayRight();
+            this.userInput = "";
+            this.updateDisplay();
+        }
+    },
+
+    getFunctionButtonPresses(a) {
+
+        console.log(a);
+
+        switch(a) {
+            case "sin":
+            case "cos":
+            case "tan":
+            case "log":
+            case "ln":
+                this.loadThisFunction(a);
+                break;
+
+            case "e":
+                break;
+
+            case "x!":
+                break;
+                
+        }
+
+    },
+
+    getOperatorButtonPresses(a) { // a is +,-,*,^/
+
+        console.log("operator-button")
+
+        a = (a==="xy") ? "^": a;
+
+        if (this.continuePreviousCalculation()) {
+            let temp_value = this.calculatedValue;
+            this.clearAll();
+            this.userInput = temp_value
+            this.updateDisplay();
+        }
+
+        if (this.inputBuffer.at(-1) === ")") { // right parentheses ")"
             this.inputBuffer.push(a);
             this.updateSecondaryDisplayRight();
         } else if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
@@ -354,7 +505,7 @@ export default {
     updateSecondaryDisplayRight() {
         // update the calculator's upper right display.
 
-        let temp_buffer = this.inputBuffer.map((x) => {
+        let local_temp_buffer = this.inputBuffer.map((x) => {
             if (this.re_checkIfNumber.test(x)) {
                 return String((parseFloat(x)).toPrecision(this.displayPrecision));
             } else {
@@ -362,10 +513,10 @@ export default {
             }
         })
 
-        if (temp_buffer.length === 0) {
+        if (local_temp_buffer.length === 0) {
             this.secondaryDisplayRight_value = "(empty)"    
         } else {
-            this.secondaryDisplayRight_value = temp_buffer.join(" ");
+            this.secondaryDisplayRight_value = local_temp_buffer.join(" ");
         }
         this.secondaryDisplayRight.textContent = this.secondaryDisplayRight_value;
     },

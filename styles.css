@@ -87,8 +87,14 @@
 .function-button,
 .backspace-button,
 .clearall-button,
-.immediate-button {
+.immediate-button,
+.degree-radian-button, 
+.alt-function-button {
     background-color: rgb(239,237,255);
+}
+
+.alt-active {
+    background-color: orange;
 }
 
 .digit-button {
