@@ -21,16 +21,21 @@ Pressing "="
  - Evaluation can be based on a single digit, i.e. "3.14 =" evaluates to 3.14.
  
 
-Updates needed: 
- - modify the calculator so that Pi appears as the symbol rather than the expanded deciman number.
- - When entering a number following an evaluation we need to:
-     - if the keystroke is a function or operator:
-     - flush the inputBuffer
-     - save the current display to the input buffer
-     - clear the display
-     - update the right side upper display
-     
-     - NOTE: if we start typing digits then execute an all clear before accepting input.
-
-
 Implement the shunting yard algorithm.
+
+- index.html: update classes on function keys.
+              changed the "EE" key to a "2nd" or
+              alt-function key for the calculator.
+              deg/rad key alternates between deg and
+              rad when clicking it.
+
+- styles.css: add new style names in index.html so
+              that buttons are colored correctly.
+
+- calculator.js: add y^x as an operator.  Implement the
+                 functions sin, cos, tan, log, and ln
+                 They do not calculate yet but they can
+                 be added to the infix calculator expression.
+
+- parser.js: added "sin" function to both the parsing and evaluation
+             methods.

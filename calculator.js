@@ -9,6 +9,8 @@ export default {
     primaryDisplay: document.querySelector(".primary-display"),
     secondaryDisplayRight: document.querySelector(".upperdisplay-rightside"),
     messageDisplayLeft: document.querySelector(".upperdisplay-leftside"),
+    altFunctionButton: document.querySelector(".alt-function-button"),
+    functionButtons: document.querySelectorAll(".function-button"),
 
     displayPrecision: 3,
     calculatedValue: 0.0,
@@ -21,6 +23,7 @@ export default {
     re_testInput: /^\d|^\./,
     re_checkForDecimal: /\./,
     re_checkIfNumber: /^[+-]?\d+(\.\d+)?$/,
+    re_findHTMLTag: /\<.+?\>/,
 
     operatorKeys: ["+","-","*","/","^"],
     operatorUnicode: ["+","\u2212","\u00D7","\u00F7","^"],
@@ -28,7 +31,14 @@ export default {
     immediateKeys: ["(",")"],
     immediateUnicode: ["\u0028", "\u0029"],
 
-    functionNames: ["sin", "cos", "tan", "ln", "log", "e", "asin", "acos", "atan", "invlog"],
+    functionNames: ["sin", "cos", "tan", "ln", "log", "e", "asin", "acos", "atan", "10^x"],
+    function_alt_pairs: {
+        "sin": "asin",
+        "cos": "acos",
+        "tan": "atan",
+        "log": "10<sup>x<\sup>",
+        "ln": "e<sup>x<\sup>",
+    },
 
     //===========
     testParser() {
@@ -36,7 +46,37 @@ export default {
         // console.log(shuntingYardParser.evaluatePostFix());
     },
 
-    captureKeyboardInput(e) {
+    show_alternate_function_keys() {
+        if (this.altFunctionButton.classList.contains("alt-active")) {
+            this.functionButtons.forEach( (functionButton) => {
+                if (Object.keys(this.function_alt_pairs).includes(functionButton.innerHTML)) {
+                    functionButton.innerHTML = this.function_alt_pairs[functionButton.innerText];
+                }
+            })
+        } else {
+            this.functionButtons.forEach( (functionButton) => {
+                Object.entries(this.function_alt_pairs).map( (item) => {
+                    let textValue = item[1];
+                    if ( this.re_findHTMLTag.test(textValue) ) {
+                        textValue = this.remove_html_tags_from_string(item[1])
+                    }
+                    if (textValue == functionButton.innerText) {
+                        functionButton.innerText = item[0];
+                    }
+                })
+            })
+        }
+    },
+
+    remove_html_tags_from_string(stringValue) {
+        let textValue = stringValue;
+        while (this.re_findHTMLTag.test(textValue)) {
+            textValue = textValue.replace( textValue.match(this.re_findHTMLTag), "" );   
+        }
+        return textValue;
+    },
+
+    capture_keyboard_input(e) {
         // if a user interacts with the calculator via the keyboard
         // this method handles individual key down actions.
 
@@ -66,18 +106,18 @@ export default {
         }
 
         if (this.re_testInput.test(keydown)) {
-            if (this.continuePreviousCalculation()) {
-                this.clearAll();
+            if (this.continue_prior_calculation()) {
+                this.clear_all();
             }
-            this.getDigitButtonPresses(keydown);
+            this.get_digit_button_presses(keydown);
         }
 
         if (keydown === "Backspace") {
-            this.removeLastUserInput();
+            this.remove_last_user_input();
         }
 
         if (keydown === "Delete") {
-            this.clearAll();
+            this.clear_all();
         }
 
         if (this.operatorKeys.includes(keydown)) {
@@ -87,51 +127,49 @@ export default {
         }
 
         if (this.immediateKeys.includes(keydown)) {
-            this.evaluateImmediateCalculatorFunctions(
+            this.evaluate_immediate_calculator_functions(
                 this.immediateUnicode[this.immediateKeys.findIndex((item) => item == keydown)]
             );
         }
                 
         if (keydown === "=") {
-            this.evaluateResult();
+            this.evaluate_result();
         }
     },
 
-    captureMouseClickInput(e) {
+    capture_mouse_click_input(e) {
         // if a user interacts with the calculator buttons
         // via mouse clicks, this method handles individual
         // button actions.
 
         if (e.target.classList.contains("digit-button")) {
-            if (this.continuePreviousCalculation()) {
-                this.clearAll();
+            if (this.continue_prior_calculation()) {
+                this.clear_all();
             }
-            this.getDigitButtonPresses(e.target.innerText);
+            this.get_digit_button_presses(e.target.innerText);
         }
 
         if (e.target.classList.contains("backspace-button")) {
-            this.removeLastUserInput();
+            this.remove_last_user_input();
         }
 
         if (e.target.classList.contains("clearall-button")) {
             console.log(`click: ${e.target.innerText}`);
-            this.clearAll();
+            this.clear_all();
         }
 
         if (e.target.classList.contains("immediate-button")) {
-            this.evaluateImmediateCalculatorFunctions(e.target.innerText);
+            this.evaluate_immediate_calculator_functions(e.target.innerText);
         }
 
         if (e.target.classList.contains("operator-button")) {
-            this.getOperatorButtonPresses(e.target.innerText);
-        }
-
-        if (e.target.classList.contains("function-button")) {
-            this.getFunctionButtonPresses(e.target.innerText);
+            this.get_calculator_operator_button_presses(e.target.innerText);
+        }        if (e.target.classList.contains("function-button")) {
+            this.get_calculator_function_button_presses(e.target.innerText);
         }
 
         if (e.target.classList.contains("evaluate-button")) {
-            this.evaluateResult();
+            this.evaluate_result();
         }
 
         if (e.target.classList.contains("degree-radian-button")) {
@@ -150,14 +188,12 @@ export default {
             } else {
                 e.target.classList.add("alt-active");
             }
-            // need code to rename function keys with alt functions.
-            // i.e. asin, acos, atan, etc.
+            this.show_alternate_function_keys();
         }
-
 
     },
 
-    continuePreviousCalculation() {
+    continue_prior_calculation() {
         
         if (this.inputBuffer.at(-1) === "=") {
             return true;
@@ -166,10 +202,10 @@ export default {
         }
     },
 
-    getLastIndexofThisToken(a) {  // presumably either "(" or ")""
+    get_last_index_of_this_token(token) {  // presumably either "(" or ")""
 
         const location = this.inputBuffer.reduce( (foundIndex, currentToken, currentIndex) => {
-            if (currentToken === a) {
+            if (currentToken === token) {
                 return currentIndex;
             } else {
                 return foundIndex;
@@ -179,16 +215,65 @@ export default {
         return location;
     },
 
-    isUnterminatedExpression() {
+    is_unterminated_expression() {
 
-        if (this.getLastIndexofThisToken("(") > this.getLastIndexofThisToken(")") ) {
+        if (this.get_last_index_of_this_token("(") > this.get_last_index_of_this_token(")") ) {
             return true;
         } else {
             return false;
         }
     },
 
-    isTheDisplayBlank() {
+    load_this_function(funcName) {
+
+        if (this.continue_prior_calculation()) {
+            let temp_value = this.calculatedValue;
+            this.clear_all();
+            this.userInput = temp_value;
+            this.update_primary_display();
+        }
+
+        if ( this.inputBuffer.at(-1) === ")" && this.is_the_display_blank() ) { 
+            // e.g. 2 x (2*Pi), input = 0.00 => 2 x sin(2 * Pi)
+            // userInput is not included here since the operand is already
+            // part of the prefix expression.
+
+            this.pop_until_opening_parenthesis();
+
+            if (this.update_previous_funcName()) {
+                this.inputBuffer.pop(); // sin, cos, tan, log, ln, ...
+                this.inputBuffer.push(funcName);
+            } else {
+                this.inputBuffer.push(funcName);
+            }
+
+            this.restore_tempBuffer_to_inputBuffer();
+
+        } else if ( this.is_unterminated_expression() ) { 
+            // e.g. 2 x (2*, input = 3.14 => 2 x sin(2 * 3.14)
+
+            this.pop_until_opening_parenthesis();
+            this.inputBuffer.push(funcName);
+
+            this.restore_tempBuffer_to_inputBuffer();
+
+            this.inputBuffer.push(this.userInput);
+            this.inputBuffer.push(")");
+
+        } else {
+            // input = 3.14 => sin(3.14)
+            this.inputBuffer.push(funcName);
+            this.inputBuffer.push("(");
+            this.inputBuffer.push(this.userInput);
+            this.inputBuffer.push(")");
+
+        }
+
+        this.clear_primary_displays_update_prefix_display();
+
+    },
+
+    is_the_display_blank() {
 
         if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
             return true;
@@ -196,78 +281,41 @@ export default {
             return false;
         }
     },
-
-    loadThisFunction(a) {
-
-        if (this.continuePreviousCalculation()) {
-            let temp_value = this.calculatedValue;
-            this.clearAll();
-            this.userInput = temp_value
-            this.updateDisplay();
-        }
-
-        if ( this.inputBuffer.at(-1) === ")" && this.isTheDisplayBlank() ) { 
-            // e.g. 2 x (2*Pi), input = 0.00 => 2 x sin(2 * Pi) 
-
-            while (this.inputBuffer.at(-1) != "(") {
-                this.tempBuffer.push(this.inputBuffer.pop());
-            }
-            this.tempBuffer.push(this.inputBuffer.pop()); // "("
-
-            if (this.functionNames.includes(this.inputBuffer.at(-1))) {
-                this.inputBuffer.pop(); // making a correction, replace this.
-            }
-
-            this.inputBuffer.push(a);
-            while (this.tempBuffer.length > 0) {
-                this.inputBuffer.push(this.tempBuffer.pop());
-            }
-
-            this.updateSecondaryDisplayRight();
-            this.userInput = "";
-            this.updateDisplay();
-
-        } else if ( this.isUnterminatedExpression() ) { 
-            // e.g. 2 x (2*, input = 3.14 => 2 x sin(2 * 3.14)
-
-            while (this.inputBuffer.at(-1) != "(") {
-                this.tempBuffer.push(this.inputBuffer.pop());
-            }
-            this.tempBuffer.push(this.inputBuffer.pop()); // "("
-
-            this.inputBuffer.push(a);
-            while (this.tempBuffer.length > 0) {
-                this.inputBuffer.push(this.tempBuffer.pop());
-            }
-            this.inputBuffer.push(this.userInput);
-            this.inputBuffer.push(")");
-            this.updateSecondaryDisplayRight();
-            this.userInput = "";
-            this.updateDisplay();
-
-        } else {
-            // input = 3.14 => sin(3.14)
-            this.inputBuffer.push(a);
-            this.inputBuffer.push("(");
-            this.inputBuffer.push(this.userInput);
-            this.inputBuffer.push(")");
-            this.updateSecondaryDisplayRight();
-            this.userInput = "";
-            this.updateDisplay();
+    
+    restore_tempBuffer_to_inputBuffer() {
+        while (this.tempBuffer.length > 0) {
+            this.inputBuffer.push(this.tempBuffer.pop());
         }
     },
 
-    getFunctionButtonPresses(a) {
+    pop_until_opening_parenthesis() {
+        while (this.inputBuffer.length > 0 && this.inputBuffer.at(-1) != "(") {
+            this.tempBuffer.push(this.inputBuffer.pop());
+        }
+        this.tempBuffer.push(this.inputBuffer.pop()); // "("
+    },
 
-        console.log(a);
+    update_previous_funcName() {
+        
+        if (this.functionNames.includes(this.inputBuffer.at(-1))) {
+            return true;            
+        } else {
+            return false;
+        }
 
-        switch(a) {
+    },
+
+    get_calculator_function_button_presses(funcName) {
+
+        console.log(funcName);
+
+        switch(funcName) {
             case "sin":
             case "cos":
             case "tan":
             case "log":
             case "ln":
-                this.loadThisFunction(a);
+                this.load_this_function(funcName);
                 break;
 
             case "e":
@@ -280,36 +328,32 @@ export default {
 
     },
 
-    getOperatorButtonPresses(a) { // a is +,-,*,^/
-
-        console.log("operator-button")
+    get_calculator_operator_button_presses(a) { // a is +,-,*,^/
 
         a = (a==="xy") ? "^": a;
 
-        if (this.continuePreviousCalculation()) {
+        if (this.continue_prior_calculation()) {
             let temp_value = this.calculatedValue;
-            this.clearAll();
-            this.userInput = temp_value
-            this.updateDisplay();
+            this.clear_all();
+            this.userInput = temp_value;
+            this.update_primary_display();
         }
 
         if (this.inputBuffer.at(-1) === ")") { // right parentheses ")"
             this.inputBuffer.push(a);
-            this.updateSecondaryDisplayRight();
+            this.update_prefix_expression_display();
         } else if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
             this.messageDisplayLeft_value = "Missing input.";
-            this.updateMsgDisplayLeft();
+            this.update_user_messsage_display();
         } else {
             this.inputBuffer.push(this.userInput);
-            this.inputBuffer.push(a);         
-            this.updateSecondaryDisplayRight();
-            this.userInput = "";
-            this.updateDisplay();
+            this.inputBuffer.push(a);
+            this.clear_primary_displays_update_prefix_display();         
         }
 
     },
 
-    getDigitButtonPresses(a) {
+    get_digit_button_presses(a) {
 
         if (this.re_testInput.test(a)) {
 
@@ -319,58 +363,58 @@ export default {
 
             if ( !(a === "." && this.re_checkForDecimal.test(this.userInput)) ) {
                 if (this.userInput.length < 25) {
-                    this.updateUserInputValue(a);
-                    this.updateDisplay();
+                    this.update_user_input_value(a);
+                    this.update_primary_display();
                 }
             }
         }
         this.messageDisplayLeft_value = ""
-        this.updateMsgDisplayLeft();
+        this.update_user_messsage_display();
 
     },
 
-    evaluateImmediateCalculatorFunctions(a) {
+    evaluate_immediate_calculator_functions(funcName) {
 
-        if (this.continuePreviousCalculation()) {
+        if (this.continue_prior_calculation()) {
 
             let temp_value = this.calculatedValue;
-            switch (a) {
+            switch (funcName) {
                 case "Inv":
                 case "\u0025": // percent
                 case "\u00B1": // plus/minus
-                    this.clearAll();
+                    this.clear_all();
                     this.userInput = String(temp_value);
-                    this.updateDisplay();
-                    this.updateMsgDisplayLeft();
+                    this.update_primary_display();
+                    this.update_user_messsage_display();
                     break;
 
                 case "(": // left parentheses
-                    this.clearAll();
-                    this.inputBuffer.push(a);
-                    this.updateSecondaryDisplayRight();
+                    this.clear_all();
+                    this.inputBuffer.push(funcName);
+                    this.update_prefix_expression_display();
                     this.userInput = String(temp_value);
-                    this.updateDisplay();
-                    this.updateMsgDisplayLeft();
+                    this.update_primary_display();
+                    this.update_user_messsage_display();
                     a = 0;
                     break;
 
                 case ")": // right parenthesis
                     this.messageDisplayLeft_value = "Error: Missing ')'"
-                    this.updateMsgDisplayLeft();
+                    this.update_user_messsage_display();
                     a = 0;
                     break;
 
                 default:
-                    this.clearAll(); 
+                    this.clear_all(); 
             }
         }
 
-        switch (a) {
+        switch (funcName) {
             case "\u03C0": // pi
 
-                this.updateUserInputValue(a);
-                this.updateDisplay();
-                this.updateMsgDisplayLeft();
+                this.update_user_input_value(funcName);
+                this.update_primary_display();
+                this.update_user_messsage_display();
                 break;
             
             case "\u00B1": // plus / minus
@@ -383,8 +427,8 @@ export default {
                     } else {
                         this.userInput = "-" + this.userInput;
                     }
-                    this.updateDisplay()
-                    this.updateMsgDisplayLeft();
+                    this.update_primary_display()
+                    this.update_user_messsage_display();
                 }
                 break;
             
@@ -393,53 +437,49 @@ export default {
 
                 if (parseFloat(this.userInput) == 0) {
                     this.messageDisplayLeft_value = "Error: Divide by zero.";
-                    this.updateMsgDisplayLeft();
+                    this.update_user_messsage_display();
 
                 } else {
                     this.userInput = (1.0 / parseFloat(this.userInput)).toString();
-                    this.updateDisplay();
-                    this.updateMsgDisplayLeft();
+                    this.update_primary_display();
+                    this.update_user_messsage_display();
                 }
                 break;
 
             case "\u0025": // percent
 
                 this.userInput = (parseFloat(this.userInput) / 100.0).toString();
-                this.updateDisplay();
-                this.updateMsgDisplayLeft();
+                this.update_primary_display();
+                this.update_user_messsage_display();
                 break;
 
             case "(": // left parenthesis
 
                 if ( this.re_checkIfNumber.test(String(this.inputBuffer.at(-1))) ) {
                     this.messageDisplayLeft_value = "Missing operand.";
-                    this.updateMsgDisplayLeft();
+                    this.update_user_messsage_display();
 
                 } else if (this.inputBuffer.at(-1) === "\u0029") {
                     this.messageDisplayLeft_value = "Missing operand.";
-                    this.updateMsgDisplayLeft();
+                    this.update_user_messsage_display();
 
                 } else {
-                    this.inputBuffer.push(a);
-                    this.updateSecondaryDisplayRight();
-                    this.userInput = "";
-                    this.updateDisplay();
-                    this.updateMsgDisplayLeft();
+                    this.inputBuffer.push(funcName);
+                    this.update_user_messsage_display();
+                    this.clear_primary_displays_update_prefix_display();
                 }
                 break;
             
             case ")": // right parenthesis
                 if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
                     this.messageDisplayLeft_value = "Missing operand.";
-                    this.updateMsgDisplayLeft();
+                    this.update_user_messsage_display();
 
                 } else {
                     this.inputBuffer.push(this.userInput);
-                    this.inputBuffer.push(a);
-                    this.updateSecondaryDisplayRight();
-                    this.userInput = "";
-                    this.updateDisplay();
-                    this.updateMsgDisplayLeft();
+                    this.inputBuffer.push(funcName);
+                    this.update_user_messsage_display();
+                    this.clear_primary_displays_update_prefix_display();
 
                 }
                 break;
@@ -447,7 +487,7 @@ export default {
     },
 
 
-    updateUserInputValue (a) {
+    update_user_input_value (a) {
         // append the user input value with the next 
         // character / digit entered by the user.
 
@@ -464,7 +504,7 @@ export default {
 
     },
 
-    removeLastUserInput() {
+    remove_last_user_input() {
         // delete the last user input character by character.
 
         if (!(this.zero.toPrecision(this.displayPrecision) == this.userInput)) {
@@ -476,24 +516,30 @@ export default {
                 this.userInput = "";
             }
 
-            this.updateDisplay();
+            this.update_primary_display();
         }
     },
 
-    clearAll () {
+    clear_all () {
         // clear buffers and reset display to 0.00.
 
         this.calculatedValue = 0;
-        this.userInput = "";
         this.inputBuffer.length = 0;
-        this.updateDisplay();
-        this.updateSecondaryDisplayRight();
         this.messageDisplayLeft_value = "";
-        this.updateMsgDisplayLeft();
+        this.update_user_messsage_display();
+        this.clear_primary_displays_update_prefix_display();
 
     },
 
-    updateDisplay() {
+    clear_primary_displays_update_prefix_display() {
+        // principle display is reset to zeros.
+        
+        this.update_prefix_expression_display();
+        this.userInput = "";
+        this.update_primary_display();
+    },
+
+    update_primary_display() {
         // update the calculator's primary display.
         if (this.userInput == "") {
             this.userInput = this.zero.toPrecision(this.displayPrecision);
@@ -502,7 +548,7 @@ export default {
         this.primaryDisplay.textContent = this.userInput;
     },
 
-    updateSecondaryDisplayRight() {
+    update_prefix_expression_display() {
         // update the calculator's upper right display.
 
         let local_temp_buffer = this.inputBuffer.map((x) => {
@@ -521,7 +567,7 @@ export default {
         this.secondaryDisplayRight.textContent = this.secondaryDisplayRight_value;
     },
 
-    updateMsgDisplayLeft() {
+    update_user_messsage_display() {
         // update the calculator's upper left display.
 
         if (this.messageDisplayLeft_value === "") {
@@ -532,11 +578,11 @@ export default {
         this.messageDisplayLeft_value = "";
     },
 
-    evaluateResult() {
+    evaluate_result() {
 
         if (this.inputBuffer.at(-1) === "\u0029") { // right parenthesis
             this.inputBuffer.push("=");
-            this.updateSecondaryDisplayRight();
+            this.update_prefix_expression_display();
         } else {
             let inputValueReady = true;
             if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
@@ -545,19 +591,17 @@ export default {
 
             if (!(inputValueReady) && this.operatorKeys.includes(this.inputBuffer.at(-1))) {
                 this.messageDisplayLeft_value = "Missing operand.";
-                this.updateMsgDisplayLeft();
+                this.update_user_messsage_display();
             } else if (!(inputValueReady) && this.operatorUnicode.includes(this.inputBuffer.at(-1))) {
                 this.messageDisplayLeft_value = "Missing operand.";
-                this.updateMsgDisplayLeft();
-            } else if (!this.checkForBalancedParentheses()) {
+                this.update_user_messsage_display();
+            } else if (!this.parentheses_balanced_are_balanced()) {
                 this.messageDisplayLeft_value = "Unbalanced parentheses."
-                this.updateMsgDisplayLeft();
+                this.update_user_messsage_display();
             } else {
                 this.inputBuffer.push(this.userInput);
                 this.inputBuffer.push("=");         
-                this.updateSecondaryDisplayRight();
-                this.userInput = "";
-                this.updateDisplay();
+                this.clear_primary_displays_update_prefix_display();
             }
         }
 
@@ -565,14 +609,14 @@ export default {
 
         if (this.inputBuffer.at(-1) === "=") {
             this.calculatedValue = Math.PI; // I should be a number, not a string.
-            this.displayCalculatedValue();
+            this.display_result();
             this.messageDisplayLeft_value = "Answer";
-            this.updateMsgDisplayLeft();
+            this.update_user_messsage_display();
         }
 
     },
 
-    checkForBalancedParentheses() {
+    parentheses_balanced_are_balanced() {
 
         const leftparentheses = this.inputBuffer.filter((currentItem) => currentItem === "(");
         const rightparentheses = this.inputBuffer.filter((currentItem) => currentItem === ")")
@@ -585,7 +629,7 @@ export default {
         this.displayValue = parseFloat(a);
     },
 
-    displayCalculatedValue () {
+    display_result () {
          this.primaryDisplay.textContent = this.calculatedValue;
     },
 

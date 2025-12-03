@@ -4,12 +4,12 @@ import { shuntingYardParser } from './parser.js';
 const main = function () {
 
     document.addEventListener('keydown', (e) => {
-        myCalc.captureKeyboardInput(e);
+        myCalc.capture_keyboard_input(e);
     });
 
     document.addEventListener('click',(e) => {
         if (e.target.classList.contains("calculator-button")) {
-            myCalc.captureMouseClickInput(e);
+            myCalc.capture_mouse_click_input(e);
         }
     });
 }
