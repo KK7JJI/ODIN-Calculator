@@ -14,7 +14,5 @@ const main = function () {
     });
 }
 
-myCalc.testParser();
-
 main();
 

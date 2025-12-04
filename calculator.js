@@ -40,11 +40,6 @@ export default {
         "ln": "e<sup>x<\sup>",
     },
 
-    //===========
-    testParser() {
-        // console.log(shuntingYardParser.parseExpression("sin,(,1,+,1,)".split(",")));
-        // console.log(shuntingYardParser.evaluatePostFix());
-    },
 
     show_alternate_function_keys() {
         if (this.altFunctionButton.classList.contains("alt-active")) {
@@ -83,9 +78,9 @@ export default {
         // not all calculator methods are accessible via the 
         // keyboard.
         
-        console.log(e.key);
-        console.log(e.keyCode);
-        console.log(e.shiftKey);
+        // console.log(e.key);
+        // console.log(e.keyCode);
+        // console.log(e.shiftKey);
 
         let keydown = e.key;
         if (e.keyCode === 57 && e.shiftKey) { // left parentheses shift + 9
@@ -121,7 +116,7 @@ export default {
         }
 
         if (this.operatorKeys.includes(keydown)) {
-            this.getOperatorButtonPresses(
+            this.get_calculator_operator_button_presses(
                 this.operatorUnicode[this.operatorKeys.findIndex((item) => item == keydown)]
             );
         }
@@ -395,13 +390,13 @@ export default {
                     this.userInput = String(temp_value);
                     this.update_primary_display();
                     this.update_user_messsage_display();
-                    a = 0;
+                    funcName  = 0;
                     break;
 
                 case ")": // right parenthesis
                     this.messageDisplayLeft_value = "Error: Missing ')'"
                     this.update_user_messsage_display();
-                    a = 0;
+                    funcName = 0;
                     break;
 
                 default:
@@ -580,7 +575,7 @@ export default {
 
     evaluate_result() {
 
-        if (this.inputBuffer.at(-1) === "\u0029") { // right parenthesis
+        if (this.inputBuffer.at(-1) === ")") { // right parenthesis
             this.inputBuffer.push("=");
             this.update_prefix_expression_display();
         } else {
@@ -605,13 +600,22 @@ export default {
             }
         }
 
-        // to do: add evaluation logic.
-
         if (this.inputBuffer.at(-1) === "=") {
-            this.calculatedValue = Math.PI; // I should be a number, not a string.
+            console.log("prefix expression table:");
+            console.table(this.inputBuffer.slice(0,-1));
+
+            shuntingYardParser.parseExpression(this.inputBuffer.slice(0,-1));
+
+            console.log("postfix expression table:");
+            console.table(shuntingYardParser.postfixQueue);
+
+
+            this.calculatedValue = shuntingYardParser.evaluatePostFix();
             this.display_result();
             this.messageDisplayLeft_value = "Answer";
             this.update_user_messsage_display();
+
+            shuntingYardParser.resetParser();
         }
 
     },
