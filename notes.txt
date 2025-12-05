@@ -1,41 +1,27 @@
-Messages:
+notes.txt converted to an issue log.
 
-Left side message display:
- - divide by zero when entered explicitly by the user
- - missing parenthesis
- - READY on startup and when pressing AC
- - NaN
- - Square root of a negative number (complex numbers not implemented)
+Issues:
 
+- Doesn't handle nested () correctly. i.e. acos(cos(2))=
+  its throwing a "missing operand" message when trying to input this.
 
+   resolution, new function added to count parentheses in order to 
+   locate the proper opening "(".
 
-Pressing "=" 
- - QC checks need to be completed before evaluating the calculation.
-    - balanced parentheses.  Count left and right parenthesis and make sure they balance.
-    - missing operator - shouldn't happen but, an operator should follow every number or 
-        right parenthesis in the expression.
+- inverse functions are not working.  i.e. cannot enter acos() into 
+  the infix expression.
 
- - Evaluation begings between the innermost () working left to right and then outward.
-    sqrt(2+2) goes to sqrt(4) which then evaluates to 2.
+   resolution add references to funcName to:
+   - get_calculator_function_button_presses (calculator.js)
+   - precedence (parser.js)
+   - associativity (parser.js)
 
- - Evaluation can be based on a single digit, i.e. "3.14 =" evaluates to 3.14.
- 
+- x! not yet implemented.
 
-Implement the shunting yard algorithm.
+- deg/rad not fully implemented.  Trig functions currently calculate in radians only.
+  
+  resolution, added conversion factors to each trig function in parser.js
+  Added code in javascript.js to update a contral name/value pair within parser.js
+  named "degrees_or_radians" with either "deg" or "rad" based on calculator interface.
 
-- index.html: update classes on function keys.
-              changed the "EE" key to a "2nd" or
-              alt-function key for the calculator.
-              deg/rad key alternates between deg and
-              rad when clicking it.
-
-- styles.css: add new style names in index.html so
-              that buttons are colored correctly.
-
-- calculator.js: add y^x as an operator.  Implement the
-                 functions sin, cos, tan, log, and ln
-                 They do not calculate yet but they can
-                 be added to the infix calculator expression.
-
-- parser.js: added "sin" function to both the parsing and evaluation
-             methods.
+- square root not fully implemented.

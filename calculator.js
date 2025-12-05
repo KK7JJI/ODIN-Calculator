@@ -11,6 +11,7 @@ export default {
     messageDisplayLeft: document.querySelector(".upperdisplay-leftside"),
     altFunctionButton: document.querySelector(".alt-function-button"),
     functionButtons: document.querySelectorAll(".function-button"),
+    degradButton: document.querySelector(".degree-radian-button"),
 
     displayPrecision: 3,
     calculatedValue: 0.0,
@@ -31,15 +32,15 @@ export default {
     immediateKeys: ["(",")"],
     immediateUnicode: ["\u0028", "\u0029"],
 
-    functionNames: ["sin", "cos", "tan", "ln", "log", "e", "asin", "acos", "atan", "10^x"],
-    function_alt_pairs: {
+    functionNames: ["sin", "cos", "tan", "ln", "log", "e", "asin", "acos", "atan", "10x", "ex"],
+
+    function_alt_pairs: { //used to define 2nd function on calculator.
         "sin": "asin",
         "cos": "acos",
         "tan": "atan",
         "log": "10<sup>x<\sup>",
         "ln": "e<sup>x<\sup>",
     },
-
 
     show_alternate_function_keys() {
         if (this.altFunctionButton.classList.contains("alt-active")) {
@@ -149,7 +150,6 @@ export default {
         }
 
         if (e.target.classList.contains("clearall-button")) {
-            console.log(`click: ${e.target.innerText}`);
             this.clear_all();
         }
 
@@ -159,7 +159,9 @@ export default {
 
         if (e.target.classList.contains("operator-button")) {
             this.get_calculator_operator_button_presses(e.target.innerText);
-        }        if (e.target.classList.contains("function-button")) {
+        }        
+        
+        if (e.target.classList.contains("function-button")) {
             this.get_calculator_function_button_presses(e.target.innerText);
         }
 
@@ -197,6 +199,13 @@ export default {
         }
     },
 
+    set_userInput_to_calculatedValue() {
+        let temp_value = this.calculatedValue;
+        this.clear_all();
+        this.userInput = temp_value;
+        this.update_primary_display();
+    },
+
     get_last_index_of_this_token(token) {  // presumably either "(" or ")""
 
         const location = this.inputBuffer.reduce( (foundIndex, currentToken, currentIndex) => {
@@ -221,52 +230,116 @@ export default {
 
     load_this_function(funcName) {
 
+
         if (this.continue_prior_calculation()) {
-            let temp_value = this.calculatedValue;
-            this.clear_all();
-            this.userInput = temp_value;
-            this.update_primary_display();
+            this.set_userInput_to_calculatedValue();
         }
+
+        let functionArgument = this.determine_function_argument();
+
+        switch (functionArgument) {
+            case "argument_enclosed_in_parentheses":
+                this.find_enclosed_operand();
+
+                if (this.update_previous_funcName()) {
+                    this.inputBuffer.pop(); // sin, cos, tan, log, ln, ...
+                    this.inputBuffer.push(funcName);
+                } else {
+                    this.inputBuffer.push(funcName);
+                }
+
+                this.restore_tempBuffer_to_inputBuffer();
+                break;
+
+            case "argument_after_left_parentheses":
+                this.inputBuffer.push(this.userInput);
+                this.inputBuffer.push(")");
+                this.find_enclosed_operand();
+
+                this.inputBuffer.push(funcName);
+
+                this.restore_tempBuffer_to_inputBuffer();
+                break;
+
+            case "argument_is_userInput":
+                this.inputBuffer.push(funcName);
+                this.inputBuffer.push("(");
+                this.inputBuffer.push(this.userInput);
+                this.inputBuffer.push(")");
+                break;
+
+        }
+
+        this.clear_primary_displays_update_infix_display();
+
+    },
+
+    raise_base_to_power_x(base) {
+        
+        // desired output: 10^(x)
+        //  x is userInput
+        //  x is bound by unterminated "(x"
+        //  x is contained in "(x)"
+
+        if (this.continue_prior_calculation()) {
+            this.set_userInput_to_calculatedValue();
+        }
+
+        let functionArgument = this.determine_function_argument();
+
+        switch (functionArgument) {
+            case "argument_enclosed_in_parentheses":
+                this.find_enclosed_operand();
+                this.inputBuffer.push(base);
+                this.inputBuffer.push('^');
+                this.restore_tempBuffer_to_inputBuffer();
+                break;
+
+            case "argument_after_left_parentheses":
+                this.inputBuffer.push(this.userInput);
+                this.inputBuffer.push(")");
+                this.find_enclosed_operand();
+                this.inputBuffer.push(base);
+                this.inputBuffer.push('^');
+                this.restore_tempBuffer_to_inputBuffer();
+                break;
+
+            case "argument_is_userInput":
+                this.inputBuffer.push(base);
+                this.inputBuffer.push('^');
+                this.inputBuffer.push("(");
+                this.inputBuffer.push(this.userInput);
+                this.inputBuffer.push(")");
+                break;
+
+        }
+
+        this.clear_primary_displays_update_infix_display();
+
+    },
+
+
+    determine_function_argument() {
 
         if ( this.inputBuffer.at(-1) === ")" && this.is_the_display_blank() ) { 
             // e.g. 2 x (2*Pi), input = 0.00 => 2 x sin(2 * Pi)
             // userInput is not included here since the operand is already
-            // part of the prefix expression.
+            // part of the infix expression.
 
-            this.pop_until_opening_parenthesis();
-
-            if (this.update_previous_funcName()) {
-                this.inputBuffer.pop(); // sin, cos, tan, log, ln, ...
-                this.inputBuffer.push(funcName);
-            } else {
-                this.inputBuffer.push(funcName);
-            }
-
-            this.restore_tempBuffer_to_inputBuffer();
+            return "argument_enclosed_in_parentheses";
 
         } else if ( this.is_unterminated_expression() ) { 
             // e.g. 2 x (2*, input = 3.14 => 2 x sin(2 * 3.14)
 
-            this.pop_until_opening_parenthesis();
-            this.inputBuffer.push(funcName);
-
-            this.restore_tempBuffer_to_inputBuffer();
-
-            this.inputBuffer.push(this.userInput);
-            this.inputBuffer.push(")");
+            return "argument_after_left_parentheses";
 
         } else {
-            // input = 3.14 => sin(3.14)
-            this.inputBuffer.push(funcName);
-            this.inputBuffer.push("(");
-            this.inputBuffer.push(this.userInput);
-            this.inputBuffer.push(")");
 
+            return "argument_is_userInput";
         }
 
-        this.clear_primary_displays_update_prefix_display();
-
     },
+
 
     is_the_display_blank() {
 
@@ -283,7 +356,7 @@ export default {
         }
     },
 
-    pop_until_opening_parenthesis() {
+    pop_to_opening_parenthesis() {
         while (this.inputBuffer.length > 0 && this.inputBuffer.at(-1) != "(") {
             this.tempBuffer.push(this.inputBuffer.pop());
         }
@@ -308,12 +381,20 @@ export default {
             case "sin":
             case "cos":
             case "tan":
+            case "asin":
+            case "acos":
+            case "atan":
             case "log":
             case "ln":
                 this.load_this_function(funcName);
                 break;
 
-            case "e":
+            case "ex":  // exp(x) 
+                this.raise_base_to_power_x('e');
+                break;
+
+                case "10x": // 10^x
+                this.raise_base_to_power_x('10');
                 break;
 
             case "x!":
@@ -328,25 +409,22 @@ export default {
         a = (a==="xy") ? "^": a;
 
         if (this.continue_prior_calculation()) {
-            let temp_value = this.calculatedValue;
-            this.clear_all();
-            this.userInput = temp_value;
-            this.update_primary_display();
+            this.set_userInput_to_calculatedValue();
         }
 
         if (this.inputBuffer.at(-1) === ")") { // right parentheses ")"
             this.inputBuffer.push(a);
-            this.update_prefix_expression_display();
+            this.update_infix_expression_display();
         } else if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
-            this.messageDisplayLeft_value = "Missing input.";
-            this.update_user_messsage_display();
+            this.display_user_message("Err: Missing Operand");
         } else {
             this.inputBuffer.push(this.userInput);
             this.inputBuffer.push(a);
-            this.clear_primary_displays_update_prefix_display();         
+            this.clear_primary_displays_update_infix_display();         
         }
 
     },
+
 
     get_digit_button_presses(a) {
 
@@ -363,8 +441,7 @@ export default {
                 }
             }
         }
-        this.messageDisplayLeft_value = ""
-        this.update_user_messsage_display();
+        this.display_user_message("");
 
     },
 
@@ -380,22 +457,19 @@ export default {
                     this.clear_all();
                     this.userInput = String(temp_value);
                     this.update_primary_display();
-                    this.update_user_messsage_display();
                     break;
 
                 case "(": // left parentheses
                     this.clear_all();
                     this.inputBuffer.push(funcName);
-                    this.update_prefix_expression_display();
+                    this.update_infix_expression_display();
                     this.userInput = String(temp_value);
                     this.update_primary_display();
-                    this.update_user_messsage_display();
                     funcName  = 0;
                     break;
 
                 case ")": // right parenthesis
-                    this.messageDisplayLeft_value = "Error: Missing ')'"
-                    this.update_user_messsage_display();
+                    this.display_user_message("Err: Missing ')'");
                     funcName = 0;
                     break;
 
@@ -405,17 +479,18 @@ export default {
         }
 
         switch (funcName) {
+            case "e": // natural log base.
             case "\u03C0": // pi
 
                 this.update_user_input_value(funcName);
                 this.update_primary_display();
-                this.update_user_messsage_display();
                 break;
             
             case "\u00B1": // plus / minus
 
                 if (parseFloat(this.userInput) == 0) {
-                    console.log("negative zero");
+                    this.display_user_message("Msg: Negative zero.");
+
                 } else {
                     if (this.userInput.slice(0,1) === "-") {
                         this.userInput = this.userInput.slice(1);
@@ -423,7 +498,6 @@ export default {
                         this.userInput = "-" + this.userInput;
                     }
                     this.update_primary_display()
-                    this.update_user_messsage_display();
                 }
                 break;
             
@@ -431,13 +505,11 @@ export default {
                 // to do - divide by zero error message in left hand display.
 
                 if (parseFloat(this.userInput) == 0) {
-                    this.messageDisplayLeft_value = "Error: Divide by zero.";
-                    this.update_user_messsage_display();
+                    this.display_user_message("Err: Divide by zero.");
 
                 } else {
                     this.userInput = (1.0 / parseFloat(this.userInput)).toString();
                     this.update_primary_display();
-                    this.update_user_messsage_display();
                 }
                 break;
 
@@ -445,36 +517,42 @@ export default {
 
                 this.userInput = (parseFloat(this.userInput) / 100.0).toString();
                 this.update_primary_display();
-                this.update_user_messsage_display();
                 break;
 
             case "(": // left parenthesis
 
                 if ( this.re_checkIfNumber.test(String(this.inputBuffer.at(-1))) ) {
-                    this.messageDisplayLeft_value = "Missing operand.";
-                    this.update_user_messsage_display();
+                    this.display_user_message("Err: Missing Operand");
 
-                } else if (this.inputBuffer.at(-1) === "\u0029") {
-                    this.messageDisplayLeft_value = "Missing operand.";
-                    this.update_user_messsage_display();
+                } else if (this.inputBuffer.at(-1) === ")") {
+                    this.display_user_message("Err: Missing Operand");
 
                 } else {
                     this.inputBuffer.push(funcName);
-                    this.update_user_messsage_display();
-                    this.clear_primary_displays_update_prefix_display();
+                    this.clear_primary_displays_update_infix_display();
                 }
                 break;
             
             case ")": // right parenthesis
-                if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
-                    this.messageDisplayLeft_value = "Missing operand.";
-                    this.update_user_messsage_display();
+                if (this.inputBuffer.at(-1) === ")") {
+                    let parenthesesCount = this.parentheses_balance_counter(); 
+                    console.log(`Parentheses: ${parenthesesCount}, ${parenthesesCount < 0}`)
+                    if (parenthesesCount < 0) {
+                        this.inputBuffer.push(funcName);
+                        this.clear_primary_displays_update_infix_display();
+
+                    } else {
+                        this.display_user_message("Err: Unbalanced ( ... )");
+
+                    }
+
+                } else if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
+                    this.display_user_message("Err: Missing Operand");
 
                 } else {
                     this.inputBuffer.push(this.userInput);
                     this.inputBuffer.push(funcName);
-                    this.update_user_messsage_display();
-                    this.clear_primary_displays_update_prefix_display();
+                    this.clear_primary_displays_update_infix_display();
 
                 }
                 break;
@@ -521,15 +599,14 @@ export default {
         this.calculatedValue = 0;
         this.inputBuffer.length = 0;
         this.messageDisplayLeft_value = "";
-        this.update_user_messsage_display();
-        this.clear_primary_displays_update_prefix_display();
+        this.clear_primary_displays_update_infix_display();
 
     },
 
-    clear_primary_displays_update_prefix_display() {
+    clear_primary_displays_update_infix_display() {
         // principle display is reset to zeros.
         
-        this.update_prefix_expression_display();
+        this.update_infix_expression_display();
         this.userInput = "";
         this.update_primary_display();
     },
@@ -541,9 +618,10 @@ export default {
         }
 
         this.primaryDisplay.textContent = this.userInput;
+        this.display_user_message("");
     },
 
-    update_prefix_expression_display() {
+    update_infix_expression_display() {
         // update the calculator's upper right display.
 
         let local_temp_buffer = this.inputBuffer.map((x) => {
@@ -562,22 +640,22 @@ export default {
         this.secondaryDisplayRight.textContent = this.secondaryDisplayRight_value;
     },
 
-    update_user_messsage_display() {
-        // update the calculator's upper left display.
+    display_user_message(messageString) {
 
-        if (this.messageDisplayLeft_value === "") {
+        if (messageString === "") {
             this.messageDisplayLeft.textContent = "READY";
         } else {
-            this.messageDisplayLeft.textContent = this.messageDisplayLeft_value;
+            this.messageDisplayLeft.textContent = messageString;
         }
         this.messageDisplayLeft_value = "";
+
     },
 
     evaluate_result() {
 
         if (this.inputBuffer.at(-1) === ")") { // right parenthesis
             this.inputBuffer.push("=");
-            this.update_prefix_expression_display();
+            this.update_infix_expression_display();
         } else {
             let inputValueReady = true;
             if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
@@ -585,25 +663,23 @@ export default {
             }
 
             if (!(inputValueReady) && this.operatorKeys.includes(this.inputBuffer.at(-1))) {
-                this.messageDisplayLeft_value = "Missing operand.";
-                this.update_user_messsage_display();
+                this.display_user_message("Err: Missing Operand");
             } else if (!(inputValueReady) && this.operatorUnicode.includes(this.inputBuffer.at(-1))) {
-                this.messageDisplayLeft_value = "Missing operand.";
-                this.update_user_messsage_display();
-            } else if (!this.parentheses_balanced_are_balanced()) {
-                this.messageDisplayLeft_value = "Unbalanced parentheses."
-                this.update_user_messsage_display();
+                this.display_user_message("Err: Missing Operand");
+            } else if (!this.parentheses_are_balanced()) {
+                this.display_user_message("Err: Unbalanced ( ... )");
             } else {
                 this.inputBuffer.push(this.userInput);
                 this.inputBuffer.push("=");         
-                this.clear_primary_displays_update_prefix_display();
+                this.clear_primary_displays_update_infix_display();
             }
         }
 
         if (this.inputBuffer.at(-1) === "=") {
-            console.log("prefix expression table:");
+            console.log("infix expression table:");
             console.table(this.inputBuffer.slice(0,-1));
 
+            shuntingYardParser.degrees_or_radians = this.degradButton.innerText;            
             shuntingYardParser.parseExpression(this.inputBuffer.slice(0,-1));
 
             console.log("postfix expression table:");
@@ -612,15 +688,49 @@ export default {
 
             this.calculatedValue = shuntingYardParser.evaluatePostFix();
             this.display_result();
-            this.messageDisplayLeft_value = "Answer";
-            this.update_user_messsage_display();
+            this.display_user_message("Answer");
 
             shuntingYardParser.resetParser();
         }
 
     },
 
-    parentheses_balanced_are_balanced() {
+    find_enclosed_operand() {
+
+        let parenthesesCount = 0;
+        let token = '';
+
+        while (this.inputBuffer.length > 0) {
+            token = this.inputBuffer.pop();
+            this.tempBuffer.push(token);
+
+            if (token === ")") ++parenthesesCount;
+            if (token === "(") --parenthesesCount;
+            if (parenthesesCount === 0) break;
+        }
+
+    },
+
+    parentheses_balance_counter() {
+
+        let parenthesesCount = 0;
+        let token = '';
+
+        while (this.inputBuffer.length > 0) {
+            token = this.inputBuffer.pop();
+            this.tempBuffer.push(token);
+
+            if (token === ")") ++parenthesesCount;
+            if (token === "(") --parenthesesCount;
+        }
+
+        this.restore_tempBuffer_to_inputBuffer();
+
+        return parenthesesCount;
+
+    },
+
+    parentheses_are_balanced() {
 
         const leftparentheses = this.inputBuffer.filter((currentItem) => currentItem === "(");
         const rightparentheses = this.inputBuffer.filter((currentItem) => currentItem === ")")

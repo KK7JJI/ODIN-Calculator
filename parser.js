@@ -11,6 +11,14 @@ export const shuntingYardParser = {
         '^': 3,
         'sin': 5,
         'cos': 5,
+        'tan': 5,
+        'asin': 5,
+        'acos': 5,
+        'atan': 5,
+        'log': 5,
+        'ln': 5,
+        'ex': 5, // =exp(x)
+        '10x': 5, // =10^(x)
     },
 
     associativity: {
@@ -19,17 +27,26 @@ export const shuntingYardParser = {
         '*': 'L', 
         '/': 'L', 
         '^': 'R',
-        'sin': "L",
-        'cos': "L",
+        'sin': 'L',
+        'cos': 'L',
+        'tan': 'L',
+        'asin': 'L',
+        'acos': 'L',
+        'atan': 'L',
+        'log': 'L',
+        'ln': 'L',
+        'ex': 'R', // =exp(x)
+        '10x': 'R', // =10^(x)
     },
 
     operatorKeys: ["+","-","*","/","^"],
     operatorUnicode: ["+","\u2212","\u00D7","\u00F7","^"],
 
-    
     postfixQueue: [],    // postfix notation  
     operatorStack: [],  // temporary storage
     temp_stack: [],
+
+    degrees_or_radians: "rad", 
 
 
     resetParser(){
@@ -55,7 +72,6 @@ export const shuntingYardParser = {
         this.infix_array.forEach( (token) => {
             token = this.convertUnicodeOperator(token);
             let classifyAs = this.classifyThisToken(token);
-            // console.log(classifyAs);
             console.log(`processAllTokens -> ${token}`);
             console.log(`classified as -> ${classifyAs}`);
 
@@ -88,7 +104,6 @@ export const shuntingYardParser = {
 
     },
 
-
     classifyThisToken(token) {
 
         let classifyAs;
@@ -97,6 +112,8 @@ export const shuntingYardParser = {
         } else if (parseFloat(token) === 0) {
             classifyAs = "Number";
         } else if (token === "\u03C0") { // Pi
+            classifyAs = "Number"
+        } else if (token === "e") { // natural log base
             classifyAs = "Number"
         } else if (Object.keys(this.precedence).includes(token)) {
             classifyAs = "Operator";
@@ -144,17 +161,16 @@ export const shuntingYardParser = {
     },
 
     evaluatePostFix() {
-        console.log("evaluatePostFix");
         this.temp_stack.length = 0;
         let a, b;
 
         this.postfixQueue.forEach( (token) => {
 
-            console.log(`Token = ${token}`);
             token = this.convertUnicodeOperator(token);
+            token = this.removeHTMLTags(token);
 
             if (this.classifyThisToken(token) === "Number") {
-                token = this.expandPi(token);
+                token = this.expandPiandE(token);
                 this.temp_stack.push(parseFloat(token));
             } else {
                 switch(token) {
@@ -184,11 +200,61 @@ export const shuntingYardParser = {
                         this.temp_stack.push(a ** b);
                         break;
                     case "sin":
+                        console.log(this.degrees_or_radians);
                         a = parseFloat(this.temp_stack.pop());
+                        if (this.degrees_or_radians === "deg") a = (a * (2*Math.PI)/360.0);
                         this.temp_stack.push(Math.sin(a));
+                        break;
                     case "cos":
                         a = parseFloat(this.temp_stack.pop());
+                        if (this.degrees_or_radians === "deg") a = (a * (2*Math.PI)/360.0);
                         this.temp_stack.push(Math.cos(a));
+                        break;
+                    case "tan":
+                        a = parseFloat(this.temp_stack.pop());
+                        if (this.degree_or_radians === "deg") a = (a * (2*Math.PI)/360.0);
+                        this.temp_stack.push(Math.tan(a));
+                        break;
+                    case "asin":
+                        a = parseFloat(this.temp_stack.pop());
+                        if (this.degrees_or_radians === "deg") {
+                            this.temp_stack.push(360 / (2*Math.PI) * Math.asin(a));
+                        } else {
+                            this.temp_stack.push(Math.asin(a));
+                        }
+                        break;
+                    case "acos":
+                        a = parseFloat(this.temp_stack.pop());
+                        if (this.degrees_or_radians === "deg") {
+                            this.temp_stack.push(360 / (2*Math.PI) * Math.acos(a));
+                        } else {
+                            this.temp_stack.push(Math.acos(a));
+                        }
+                        break;
+                    case "atan":
+                        a = parseFloat(this.temp_stack.pop());
+                        if (this.degrees_or_radians === "deg") {
+                            this.temp_stack.push(360 / (2*Math.PI) * Math.atan(a));
+                        } else {
+                            this.temp_stack.push(Math.atan(a));
+                        }
+                        break;
+                    case "log":
+                        a = parseFloat(this.temp_stack.pop());
+                        this.temp_stack.push(Math.log10(a)); // base 10
+                        break;
+                    case "ln":
+                        a = parseFloat(this.temp_stack.pop());
+                        this.temp_stack.push(Math.log(a)); // base e
+                        break;
+                    case "10x":
+                        a = parseFloat(this.temp_stack.pop());
+                        this.temp_stack.push(10 ** a);
+                        break;
+                    case "ex":
+                        a = parseFloat(this.temp_stack.pop());
+                        this.temp_stack.push(Math.exp(a));
+                        break;
 
                     default:
                         // error condition.
@@ -202,15 +268,28 @@ export const shuntingYardParser = {
         return this.temp_stack.at(0);
     },
 
-    expandPi(token) {
+    expandPiandE(token) {
         console.log(`Operand = ${token}`);
         if (token === "\u03C0") { // pi symbol
             console.log(`Converting ${"\u03C0"} to ${Math.PI}`);
             return Math.PI;
+        } else if (token === "e") {
+            console.log(`Converting ${"e"} to ${Math.E}`);
+            return Math.E;
         } else {
-            return parseFloat(token);
+            return token;
         }
-    }
+    },
+
+    removeHTMLTags(stringValue) {
+        const re_findHTMLTag = /\<.+?\>/;
+        let textValue = stringValue;
+        while (re_findHTMLTag.test(textValue)) {
+            textValue = textValue.replace( textValue.match(this.re_findHTMLTag), "" );   
+        }
+        return textValue;
+    },
+
 
 }
 
