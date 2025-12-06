@@ -1,21 +1,21 @@
 # ODIN-Calculator
 Capstone project for the ODIN fundamentals course.
 
-The calculator captures user input from a combination of keyboard and mouse clicks.  Some features includes several common calculator functions including
+The calculator captures user input from a combination of keyboard and mouse clicks.  Some features includes several common calculator functions:
 
 - trig functions (sin, cos, tan)
 - inverse trig functions (asin, acos, atan)
-- trig calculation can be completed in both degree and radian modes
+    (trig calculation can be completed in both degree and radian modes)
 - log base 'e' and base '10'
-- square root
-- exponent operator
-- factorial
+- square roots
+- exponents
+- factorials
 
-Input is programmed into the calculate using standard infix expression notation. Parentheses can be used to group calculations.
+Input is programmed into the calculator using standard infix expression notation. Parentheses can be used to group calculations.
 
 [infix expressions] (https://en.wikipedia.org/wiki/Infix_notation)
 
-The calculator allows for minor input corrections on the primary display via a keyboard backspace or the "<" button, however no provision is made to allow for the infix expression to be corrected once updated.
+The calculator allows for minor input corrections on the primary display via a keyboard backspace or the "<" button. No provision is made to allow for the infix expression to be corrected once updated.
 
 Calculations will automatically feed into the next entered expression when the user enters an operator or function.  It will start over automatically if a number is entered or the "AC" button is pressed.
 
@@ -33,6 +33,8 @@ Examples:
     "10" + "log" => log(10)
     "(" + "2" + "*" + "Pi" + ")" + sin => sin(2*Pi)
     "(" + "5" + "(" + 5 + "x!" + ")" + "/" + "10" =>  (5+5!)/10
+
+The "Enter" key is not used.  Calculation is initiated by pressing "=".
 
 **Notes:**\
 Pi and e are stored symbolically and expanded when the expression is evaluated to conserve display space.
