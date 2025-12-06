@@ -1,19 +1,19 @@
 # ODIN-Calculator
 Capstone project for the ODIN fundamentals course.
 
-The calculator captures user input from a combination of keyboard and mouse clicks.  Some features includes several common calculator functions:
+The calculator captures user input from a combination of keyboard and mouse clicks.  Features include several common calculator functions:
 
 - trig functions (sin, cos, tan)
-- inverse trig functions (asin, acos, atan)
+- inverse trig functions (asin, acos, atan)\
     (trig calculation can be completed in both degree and radian modes)
 - log base 'e' and base '10'
 - square roots
 - exponents
 - factorials
 
-Input is programmed into the calculator using standard infix expression notation. Parentheses can be used to group calculations.
+An expression is programmed into the calculator using standard infix notation. Parentheses can be used to group calculations.
 
-[infix expressions] (https://en.wikipedia.org/wiki/Infix_notation)
+[infix expressions](https://en.wikipedia.org/wiki/Infix_notation)
 
 The calculator allows for minor input corrections on the primary display via a keyboard backspace or the "<" button. No provision is made to allow for the infix expression to be corrected once updated.
 
@@ -41,8 +41,8 @@ Pi and e are stored symbolically and expanded when the expression is evaluated t
 
 Evaluation of the infix expression is accomplished by first converting to postfix using the Shunting yard algorithm. This allows the expression to be evaluated a step at a time while respecting operator precedence.
 
-[Shunting yard algorithm] (https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
-[postfix expressions] (https://en.wikipedia.org/wiki/Reverse_Polish_notation)
+[Shunting yard algorithm](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)\
+[postfix expressions](https://en.wikipedia.org/wiki/Reverse_Polish_notation)
 
 The calculator will supply some error messages when they can be caught prior to final evaluation.  These include missing operators, missing parentheses, divide by zero, etc.  The message will display in the top left corner of the display panel.
 
