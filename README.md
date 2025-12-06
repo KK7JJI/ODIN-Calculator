@@ -11,18 +11,13 @@ The calculator captures user input from a combination of keyboard and mouse clic
 - exponent operator
 - factorial
 
-Input is programmed into the calculate using standard infix expression notation. 
-Parentheses can be used to group calculations.
+Input is programmed into the calculate using standard infix expression notation. Parentheses can be used to group calculations.
 
 [infix expressions] (https://en.wikipedia.org/wiki/Infix_notation)
 
-The calculator allows for minor input corrections on the primary display via 
-a keyboard backspace or the "<" button, however no provision is made to allow 
-for the infix expression to be corrected once updated.
+The calculator allows for minor input corrections on the primary display via a keyboard backspace or the "<" button, however no provision is made to allow for the infix expression to be corrected once updated.
 
-Calculations will automatically feed into the next entered expression when 
-the user enters an operator or function.  It will start over automatically 
-if a number is entered or the "AC" button is pressed.
+Calculations will automatically feed into the next entered expression when the user enters an operator or function.  It will start over automatically if a number is entered or the "AC" button is pressed.
 
 Standardard arithmatic operators are entered as expected:
 
@@ -31,8 +26,7 @@ Examples:
     "2" + "+" + "2" => 2+2
     "3" * "(" + "1" + "2" + ")" + "-" + "5" => 3*(1+2)-5
 
-Functions are generally entered operand first.  (Use of parentheses to 
-ensure operand is grouped correctly is recommended.)
+Functions are entered operand first.  (Use of parentheses to ensure operand is grouped correctly is recommended.)
 
 Examples:
 
@@ -41,24 +35,15 @@ Examples:
     "(" + "5" + "(" + 5 + "x!" + ")" + "/" + "10" =>  (5+5!)/10
 
 **Notes:**\
-Pi and e are stored symbolically and expanded when the expression 
-is evaluated to conserve display space.
+Pi and e are stored symbolically and expanded when the expression is evaluated to conserve display space.
 
-Evaluation of the infix expression is accomplished by 
-first converting to postfix using the Shunting yard algorith.
-This allows the expression to be evaluated a step at a time 
-while respecting operator precedence.
+Evaluation of the infix expression is accomplished by first converting to postfix using the Shunting yard algorithm. This allows the expression to be evaluated a step at a time while respecting operator precedence.
 
 [Shunting yard algorithm] (https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
 [postfix expressions] (https://en.wikipedia.org/wiki/Reverse_Polish_notation)
 
-The calculator will supply some error messages when then can
-be caught prior to final evaluation.  These include missing 
-operators, missing parentheses, divide by zero, etc.  The 
-message will display in the top left corner of the display panel.
+The calculator will supply some error messages when they can be caught prior to final evaluation.  These include missing operators, missing parentheses, divide by zero, etc.  The message will display in the top left corner of the display panel.
 
-The infix expression will display in the top right corner of
-the display panel.
+The infix expression will display in the top right corner of the display panel.
 
-User input and calculated results appear in the lower window 
-of the primary display panel
+User input and calculated results appear in the lower window of the primary display panel
