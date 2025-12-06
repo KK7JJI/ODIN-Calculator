@@ -66,16 +66,14 @@ export const shuntingYardParser = {
     processInfixExpression(expr) {
         this.infix_array = expr;
         this.processAllTokens();
-        console.log("postfix: ");
-        console.table(this.postfixQueue);        
+        // console.log("postfix: ");
+        // console.table(this.postfixQueue);        
     },
 
     processAllTokens() {
         this.infix_array.forEach( (token) => {
             token = this.convertUnicodeOperator(token);
             let classifyAs = this.classifyThisToken(token);
-            console.log(`processAllTokens -> ${token}`);
-            console.log(`classified as -> ${classifyAs}`);
 
             switch(classifyAs) {
                 case "Number":
@@ -206,7 +204,6 @@ export const shuntingYardParser = {
                         this.temp_stack.push(this.factorial(a));
                         break;
                     case "sin":
-                        console.log(this.degrees_or_radians);
                         a = parseFloat(this.temp_stack.pop());
                         if (this.degrees_or_radians === "deg") a = (a * (2*Math.PI)/360.0);
                         this.temp_stack.push(Math.sin(a));
@@ -264,19 +261,16 @@ export const shuntingYardParser = {
                 };
             }
         });
-        console.log("temp_stack");
-        console.table(this.temp_stack);
-        console.log(`Result: ${this.temp_stack.at(0)}`);
+        // console.log("temp_stack");
+        // console.table(this.temp_stack);
+        // console.log(`Result: ${this.temp_stack.at(0)}`);
         return this.temp_stack.at(0);
     },
 
     expandPiandE(token) {
-        console.log(`Operand = ${token}`);
         if (token === "\u03C0") { // pi symbol
-            console.log(`Converting ${"\u03C0"} to ${Math.PI}`);
             return Math.PI;
         } else if (token === "e") {
-            console.log(`Converting ${"e"} to ${Math.E}`);
             return Math.E;
         } else {
             return token;
@@ -293,7 +287,9 @@ export const shuntingYardParser = {
     },
 
     factorial(n) {
-
+        if (n < 0) {
+            return NaN;
+        }
         if (n === 0 || n === 1) {
             return 1;
         } else {

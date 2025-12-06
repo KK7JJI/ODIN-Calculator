@@ -80,10 +80,6 @@ export default {
         // not all calculator methods are accessible via the 
         // keyboard.
         
-        // console.log(e.key);
-        // console.log(e.keyCode);
-        // console.log(e.shiftKey);
-
         let keydown = e.key;
         if (e.keyCode === 57 && e.shiftKey) { // left parentheses shift + 9
             keydown = "(";
@@ -95,11 +91,6 @@ export default {
 
         if (e.keyCode === 54 && e.shiftKey) { // carrot - exponent operator shift + 6
             keydown = "^";    
-        }
-
-        // ============
-        if (keydown === "q") {
-            this.testParser();
         }
 
         if (this.re_testInput.test(keydown)) {
@@ -128,7 +119,7 @@ export default {
                 this.immediateUnicode[this.immediateKeys.findIndex((item) => item == keydown)]
             );
         }
-                
+
         if (keydown === "=") {
             this.evaluate_result();
         }
@@ -231,7 +222,6 @@ export default {
 
     load_this_function(funcName) {
 
-        console.log(`load_this_funciton => ${funcName}`)
         if (this.continue_from_prior_answer()) {
             this.set_userInput_to_prior_answer();
         }
@@ -276,24 +266,26 @@ export default {
                 break;
 
             case "argument_is_userInput":
-                console.log("argument is user input.");
                 if (funcName === "\u221A" && parseFloat(this.userInput) < 0) {
-                    msg = ("Err: Neg. Square Root.");
+                    msg = "Err: Neg. Square Root.";
                 } else if (funcName === "x!") {
-                    this.inputBuffer.push("(");
-                    this.inputBuffer.push(this.userInput);
-                    this.inputBuffer.push(")");
-                    this.inputBuffer.push("!");
+                    if (parseFloat(this.userInput) < 0) {
+                        msg = "Err: Neg. Factorial."
+                    } else {
+                        this.inputBuffer.push("(");
+                        this.inputBuffer.push(this.userInput);
+                        this.inputBuffer.push(")");
+                        this.inputBuffer.push("!");
+                    }
 
                 } else {
                     this.inputBuffer.push(funcName);
                     this.inputBuffer.push("(");
                     this.inputBuffer.push(this.userInput);
                     this.inputBuffer.push(")");
-
                 }
-                break;
 
+                break;
         }
 
         this.clear_primary_displays_update_infix_display(msg);
@@ -357,8 +349,6 @@ export default {
 
     get_calculator_function_button_presses(funcName) {
 
-        console.log(funcName);
-
         switch(funcName) {
             case "sin":
             case "cos":
@@ -377,13 +367,9 @@ export default {
                 this.raise_base_to_power_x('e');
                 break;
 
-                case "10x": // 10^x
+            case "10x": // 10^x
                 this.raise_base_to_power_x('10');
-                break;
-
-            case "x!":
-                break;
-                
+                break;                
         }
 
     },
@@ -444,8 +430,11 @@ export default {
         if (this.inputBuffer.at(-1) === ")") { // right parentheses ")"
             this.inputBuffer.push(a);
             this.update_infix_expression_display();
+        } else if (this.inputBuffer.at(-1) === "!") {
+            this.inputBuffer.push(a);
+            this.update_infix_expression_display();
         } else if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
-            this.display_user_message("Err: Missing Operand");
+            this.display_user_message("Err: Missing Operand (6)");
         } else {
             this.inputBuffer.push(this.userInput);
             this.inputBuffer.push(a);
@@ -551,10 +540,10 @@ export default {
             case "(": // left parenthesis
 
                 if ( this.re_checkIfNumber.test(String(this.inputBuffer.at(-1))) ) {
-                    this.display_user_message("Err: Missing Operand");
+                    this.display_user_message("Err: Missing Operand (1)");
 
                 } else if (this.inputBuffer.at(-1) === ")") {
-                    this.display_user_message("Err: Missing Operand");
+                    this.display_user_message("Err: Missing Operand (2)");
 
                 } else {
                     this.inputBuffer.push(funcName);
@@ -563,9 +552,8 @@ export default {
                 break;
             
             case ")": // right parenthesis
-                if (this.inputBuffer.at(-1) === ")") {
+                if (this.inputBuffer.at(-1) === ")" || this.inputBuffer.at(-1) === "!") {
                     let parenthesesCount = this.parentheses_balance_test(); 
-                    console.log(`Parentheses: ${parenthesesCount}, ${parenthesesCount < 0}`)
                     if (parenthesesCount < 0) {
                         this.inputBuffer.push(funcName);
                         this.clear_primary_displays_update_infix_display("");
@@ -576,7 +564,7 @@ export default {
                     }
 
                 } else if (this.zero.toPrecision(this.displayPrecision) === this.userInput) {
-                    this.display_user_message("Err: Missing Operand");
+                    this.display_user_message("Err: Missing Operand (3)");
 
                 } else {
                     this.inputBuffer.push(this.userInput);
@@ -711,9 +699,9 @@ export default {
             }
 
             if (!(inputValueReady) && this.operatorKeys.includes(this.inputBuffer.at(-1))) {
-                this.display_user_message("Err: Missing Operand");
+                this.display_user_message("Err: Missing Operand (4)");
             } else if (!(inputValueReady) && this.operatorUnicode.includes(this.inputBuffer.at(-1))) {
-                this.display_user_message("Err: Missing Operand");
+                this.display_user_message("Err: Missing Operand (5)");
             } else if (!this.parentheses_are_balanced()) {
                 this.display_user_message("Err: Unbalanced ( ... )");
             } else {
@@ -724,8 +712,8 @@ export default {
         }
 
         if (this.inputBuffer.at(-1) === "=") {
-            console.log("infix expression table:");
-            console.table(this.inputBuffer.slice(0,-1));
+            // console.log("infix expression table:");
+            // console.table(this.inputBuffer.slice(0,-1));
 
             shuntingYardParser.degrees_or_radians = this.degradButton.innerText;            
             shuntingYardParser.processInfixExpression(this.inputBuffer.slice(0,-1));

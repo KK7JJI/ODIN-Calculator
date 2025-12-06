@@ -3,6 +3,7 @@ import myCalc from './calculator.js';
 const main = function () {
 
     document.addEventListener('keydown', (e) => {
+        e.preventDefault();
         myCalc.capture_keyboard_input(e);
     });
 
