@@ -1,5 +1,4 @@
 import myCalc from './calculator.js';
-import { shuntingYardParser } from './parser.js';
 
 const main = function () {
 

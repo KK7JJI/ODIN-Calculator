@@ -9,6 +9,7 @@ export const shuntingYardParser = {
         '*': 2, 
         '/': 2, 
         '^': 3,
+        '\u221A':3, //square root
         'sin': 5,
         'cos': 5,
         'tan': 5,
@@ -17,8 +18,7 @@ export const shuntingYardParser = {
         'atan': 5,
         'log': 5,
         'ln': 5,
-        'ex': 5, // =exp(x)
-        '10x': 5, // =10^(x)
+        '!' : 4,
     },
 
     associativity: {
@@ -35,8 +35,8 @@ export const shuntingYardParser = {
         'atan': 'L',
         'log': 'L',
         'ln': 'L',
-        'ex': 'R', // =exp(x)
-        '10x': 'R', // =10^(x)
+        '\u221A': 'R', // square root
+        '!': 'L',
     },
 
     operatorKeys: ["+","-","*","/","^"],
@@ -63,9 +63,11 @@ export const shuntingYardParser = {
         return token;
     },
 
-    parseExpression(expr) {
+    processInfixExpression(expr) {
         this.infix_array = expr;
         this.processAllTokens();
+        console.log("postfix: ");
+        console.table(this.postfixQueue);        
     },
 
     processAllTokens() {
@@ -131,7 +133,7 @@ export const shuntingYardParser = {
 
         this.convertUnicodeOperator(token);
 
-        let lastToken;        
+        let lastToken;
         while (this.operatorStack.length > 0) {
             lastToken = this.operatorStack.at(-1);
             if (Object.keys(this.precedence).includes(lastToken)) {
@@ -199,6 +201,10 @@ export const shuntingYardParser = {
                         a = parseFloat(this.temp_stack.pop());
                         this.temp_stack.push(a ** b);
                         break;
+                    case "!":
+                        a = parseFloat(this.temp_stack.pop());
+                        this.temp_stack.push(this.factorial(a));
+                        break;
                     case "sin":
                         console.log(this.degrees_or_radians);
                         a = parseFloat(this.temp_stack.pop());
@@ -247,13 +253,9 @@ export const shuntingYardParser = {
                         a = parseFloat(this.temp_stack.pop());
                         this.temp_stack.push(Math.log(a)); // base e
                         break;
-                    case "10x":
+                    case "\u221A":
                         a = parseFloat(this.temp_stack.pop());
-                        this.temp_stack.push(10 ** a);
-                        break;
-                    case "ex":
-                        a = parseFloat(this.temp_stack.pop());
-                        this.temp_stack.push(Math.exp(a));
+                        this.temp_stack.push(Math.sqrt(a));
                         break;
 
                     default:
@@ -290,6 +292,14 @@ export const shuntingYardParser = {
         return textValue;
     },
 
+    factorial(n) {
+
+        if (n === 0 || n === 1) {
+            return 1;
+        } else {
+            return n * this.factorial(n - 1);
+        }
+    },
 
 }
 

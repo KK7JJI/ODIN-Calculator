@@ -25,3 +25,6 @@ Issues:
   named "degrees_or_radians" with either "deg" or "rad" based on calculator interface.
 
 - square root not fully implemented.
+
+- pop_until_opening_parenthesis() in calculator.js is dead code.
+- update_user_messsage_display() in calculator.js is dead code.

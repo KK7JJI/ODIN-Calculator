@@ -32,7 +32,8 @@ export default {
     immediateKeys: ["(",")"],
     immediateUnicode: ["\u0028", "\u0029"],
 
-    functionNames: ["sin", "cos", "tan", "ln", "log", "e", "asin", "acos", "atan", "10x", "ex"],
+    functionNames: ["sin", "cos", "tan", "ln", "log", "e", "asin", "acos", "atan", "10x", "ex", "\u221A", "x!"],
+    // "\u221A" = square root.
 
     function_alt_pairs: { //used to define 2nd function on calculator.
         "sin": "asin",
@@ -102,7 +103,7 @@ export default {
         }
 
         if (this.re_testInput.test(keydown)) {
-            if (this.continue_prior_calculation()) {
+            if (this.continue_from_prior_answer()) {
                 this.clear_all();
             }
             this.get_digit_button_presses(keydown);
@@ -139,7 +140,7 @@ export default {
         // button actions.
 
         if (e.target.classList.contains("digit-button")) {
-            if (this.continue_prior_calculation()) {
+            if (this.continue_from_prior_answer()) {
                 this.clear_all();
             }
             this.get_digit_button_presses(e.target.innerText);
@@ -190,7 +191,7 @@ export default {
 
     },
 
-    continue_prior_calculation() {
+    continue_from_prior_answer() {
         
         if (this.inputBuffer.at(-1) === "=") {
             return true;
@@ -199,7 +200,7 @@ export default {
         }
     },
 
-    set_userInput_to_calculatedValue() {
+    set_userInput_to_prior_answer() {
         let temp_value = this.calculatedValue;
         this.clear_all();
         this.userInput = temp_value;
@@ -230,91 +231,72 @@ export default {
 
     load_this_function(funcName) {
 
-
-        if (this.continue_prior_calculation()) {
-            this.set_userInput_to_calculatedValue();
+        console.log(`load_this_funciton => ${funcName}`)
+        if (this.continue_from_prior_answer()) {
+            this.set_userInput_to_prior_answer();
         }
 
         let functionArgument = this.determine_function_argument();
+        let msg = "";
 
         switch (functionArgument) {
             case "argument_enclosed_in_parentheses":
                 this.find_enclosed_operand();
 
-                if (this.update_previous_funcName()) {
-                    this.inputBuffer.pop(); // sin, cos, tan, log, ln, ...
-                    this.inputBuffer.push(funcName);
+                if (funcName === "x!") {
+                    this.restore_tempBuffer_to_inputBuffer();
+                    this.inputBuffer.push("!");
+
+                } else {
+                    if (this.update_previous_funcName()) {
+                        this.inputBuffer.pop(); // sin, cos, tan, log, ln, ...
+                        this.inputBuffer.push(funcName);
+                    } else {
+                        this.inputBuffer.push(funcName);
+                    }
+                    this.restore_tempBuffer_to_inputBuffer();
+
+                }
+                break;
+
+            case "argument_after_left_parentheses":
+                this.inputBuffer.push(this.userInput);
+                this.inputBuffer.push(")");
+                this.find_enclosed_operand();
+
+                if (funcName === "x!") {
+                    this.restore_tempBuffer_to_inputBuffer();
+                    this.inputBuffer.push("!");
+
                 } else {
                     this.inputBuffer.push(funcName);
+                    this.restore_tempBuffer_to_inputBuffer();
+
                 }
-
-                this.restore_tempBuffer_to_inputBuffer();
-                break;
-
-            case "argument_after_left_parentheses":
-                this.inputBuffer.push(this.userInput);
-                this.inputBuffer.push(")");
-                this.find_enclosed_operand();
-
-                this.inputBuffer.push(funcName);
-
-                this.restore_tempBuffer_to_inputBuffer();
                 break;
 
             case "argument_is_userInput":
-                this.inputBuffer.push(funcName);
-                this.inputBuffer.push("(");
-                this.inputBuffer.push(this.userInput);
-                this.inputBuffer.push(")");
+                console.log("argument is user input.");
+                if (funcName === "\u221A" && parseFloat(this.userInput) < 0) {
+                    msg = ("Err: Neg. Square Root.");
+                } else if (funcName === "x!") {
+                    this.inputBuffer.push("(");
+                    this.inputBuffer.push(this.userInput);
+                    this.inputBuffer.push(")");
+                    this.inputBuffer.push("!");
+
+                } else {
+                    this.inputBuffer.push(funcName);
+                    this.inputBuffer.push("(");
+                    this.inputBuffer.push(this.userInput);
+                    this.inputBuffer.push(")");
+
+                }
                 break;
 
         }
 
-        this.clear_primary_displays_update_infix_display();
-
-    },
-
-    raise_base_to_power_x(base) {
-        
-        // desired output: 10^(x)
-        //  x is userInput
-        //  x is bound by unterminated "(x"
-        //  x is contained in "(x)"
-
-        if (this.continue_prior_calculation()) {
-            this.set_userInput_to_calculatedValue();
-        }
-
-        let functionArgument = this.determine_function_argument();
-
-        switch (functionArgument) {
-            case "argument_enclosed_in_parentheses":
-                this.find_enclosed_operand();
-                this.inputBuffer.push(base);
-                this.inputBuffer.push('^');
-                this.restore_tempBuffer_to_inputBuffer();
-                break;
-
-            case "argument_after_left_parentheses":
-                this.inputBuffer.push(this.userInput);
-                this.inputBuffer.push(")");
-                this.find_enclosed_operand();
-                this.inputBuffer.push(base);
-                this.inputBuffer.push('^');
-                this.restore_tempBuffer_to_inputBuffer();
-                break;
-
-            case "argument_is_userInput":
-                this.inputBuffer.push(base);
-                this.inputBuffer.push('^');
-                this.inputBuffer.push("(");
-                this.inputBuffer.push(this.userInput);
-                this.inputBuffer.push(")");
-                break;
-
-        }
-
-        this.clear_primary_displays_update_infix_display();
+        this.clear_primary_displays_update_infix_display(msg);
 
     },
 
@@ -386,6 +368,8 @@ export default {
             case "atan":
             case "log":
             case "ln":
+            case "x!":
+            case "\u221A": //square root
                 this.load_this_function(funcName);
                 break;
 
@@ -404,12 +388,57 @@ export default {
 
     },
 
+    raise_base_to_power_x(base) {
+        
+        // desired output: 10^(x)
+        //  x is userInput
+        //  x is bound by unterminated "(x"
+        //  x is contained in "(x)"
+
+        if (this.continue_from_prior_answer()) {
+            this.set_userInput_to_prior_answer();
+        }
+
+        let functionArgument = this.determine_function_argument();
+
+        switch (functionArgument) {
+            case "argument_enclosed_in_parentheses":
+                this.find_enclosed_operand();
+                this.inputBuffer.push(base);
+                this.inputBuffer.push('^');
+                this.restore_tempBuffer_to_inputBuffer();
+                break;
+
+            case "argument_after_left_parentheses":
+                this.inputBuffer.push(this.userInput);
+                this.inputBuffer.push(")");
+                this.find_enclosed_operand();
+                this.inputBuffer.push(base);
+                this.inputBuffer.push('^');
+                this.restore_tempBuffer_to_inputBuffer();
+                break;
+
+            case "argument_is_userInput":
+                this.inputBuffer.push(base);
+                this.inputBuffer.push('^');
+                this.inputBuffer.push("(");
+                this.inputBuffer.push(this.userInput);
+                this.inputBuffer.push(")");
+                break;
+
+        }
+
+        this.clear_primary_displays_update_infix_display("");
+
+    },
+
+
     get_calculator_operator_button_presses(a) { // a is +,-,*,^/
 
         a = (a==="xy") ? "^": a;
 
-        if (this.continue_prior_calculation()) {
-            this.set_userInput_to_calculatedValue();
+        if (this.continue_from_prior_answer()) {
+            this.set_userInput_to_prior_answer();
         }
 
         if (this.inputBuffer.at(-1) === ")") { // right parentheses ")"
@@ -420,7 +449,7 @@ export default {
         } else {
             this.inputBuffer.push(this.userInput);
             this.inputBuffer.push(a);
-            this.clear_primary_displays_update_infix_display();         
+            this.clear_primary_displays_update_infix_display("");         
         }
 
     },
@@ -447,7 +476,7 @@ export default {
 
     evaluate_immediate_calculator_functions(funcName) {
 
-        if (this.continue_prior_calculation()) {
+        if (this.continue_from_prior_answer()) {
 
             let temp_value = this.calculatedValue;
             switch (funcName) {
@@ -529,17 +558,17 @@ export default {
 
                 } else {
                     this.inputBuffer.push(funcName);
-                    this.clear_primary_displays_update_infix_display();
+                    this.clear_primary_displays_update_infix_display("");
                 }
                 break;
             
             case ")": // right parenthesis
                 if (this.inputBuffer.at(-1) === ")") {
-                    let parenthesesCount = this.parentheses_balance_counter(); 
+                    let parenthesesCount = this.parentheses_balance_test(); 
                     console.log(`Parentheses: ${parenthesesCount}, ${parenthesesCount < 0}`)
                     if (parenthesesCount < 0) {
                         this.inputBuffer.push(funcName);
-                        this.clear_primary_displays_update_infix_display();
+                        this.clear_primary_displays_update_infix_display("");
 
                     } else {
                         this.display_user_message("Err: Unbalanced ( ... )");
@@ -552,11 +581,30 @@ export default {
                 } else {
                     this.inputBuffer.push(this.userInput);
                     this.inputBuffer.push(funcName);
-                    this.clear_primary_displays_update_infix_display();
+                    this.clear_primary_displays_update_infix_display("");
 
                 }
                 break;
         }
+    },
+
+    parentheses_balance_test() {
+
+        let parenthesesCount = 0;
+        let token = '';
+
+        while (this.inputBuffer.length > 0) {
+            token = this.inputBuffer.pop();
+            this.tempBuffer.push(token);
+
+            if (token === ")") ++parenthesesCount;
+            if (token === "(") --parenthesesCount;
+        }
+
+        this.restore_tempBuffer_to_inputBuffer();
+
+        return parenthesesCount;
+
     },
 
 
@@ -599,16 +647,16 @@ export default {
         this.calculatedValue = 0;
         this.inputBuffer.length = 0;
         this.messageDisplayLeft_value = "";
-        this.clear_primary_displays_update_infix_display();
-
+        this.clear_primary_displays_update_infix_display("");
     },
 
-    clear_primary_displays_update_infix_display() {
+    clear_primary_displays_update_infix_display(msg) {
         // principle display is reset to zeros.
         
         this.update_infix_expression_display();
         this.userInput = "";
         this.update_primary_display();
+        this.display_user_message(msg);
     },
 
     update_primary_display() {
@@ -641,7 +689,6 @@ export default {
     },
 
     display_user_message(messageString) {
-
         if (messageString === "") {
             this.messageDisplayLeft.textContent = "READY";
         } else {
@@ -649,11 +696,12 @@ export default {
         }
         this.messageDisplayLeft_value = "";
 
+
     },
 
     evaluate_result() {
 
-        if (this.inputBuffer.at(-1) === ")") { // right parenthesis
+        if (this.inputBuffer.at(-1) === ")" || this.inputBuffer.at(-1) === "!") { // right parenthesis
             this.inputBuffer.push("=");
             this.update_infix_expression_display();
         } else {
@@ -671,7 +719,7 @@ export default {
             } else {
                 this.inputBuffer.push(this.userInput);
                 this.inputBuffer.push("=");         
-                this.clear_primary_displays_update_infix_display();
+                this.clear_primary_displays_update_infix_display("");
             }
         }
 
@@ -680,11 +728,7 @@ export default {
             console.table(this.inputBuffer.slice(0,-1));
 
             shuntingYardParser.degrees_or_radians = this.degradButton.innerText;            
-            shuntingYardParser.parseExpression(this.inputBuffer.slice(0,-1));
-
-            console.log("postfix expression table:");
-            console.table(shuntingYardParser.postfixQueue);
-
+            shuntingYardParser.processInfixExpression(this.inputBuffer.slice(0,-1));
 
             this.calculatedValue = shuntingYardParser.evaluatePostFix();
             this.display_result();
@@ -711,25 +755,6 @@ export default {
 
     },
 
-    parentheses_balance_counter() {
-
-        let parenthesesCount = 0;
-        let token = '';
-
-        while (this.inputBuffer.length > 0) {
-            token = this.inputBuffer.pop();
-            this.tempBuffer.push(token);
-
-            if (token === ")") ++parenthesesCount;
-            if (token === "(") --parenthesesCount;
-        }
-
-        this.restore_tempBuffer_to_inputBuffer();
-
-        return parenthesesCount;
-
-    },
-
     parentheses_are_balanced() {
 
         const leftparentheses = this.inputBuffer.filter((currentItem) => currentItem === "(");
@@ -748,3 +773,4 @@ export default {
     },
 
 };
+
